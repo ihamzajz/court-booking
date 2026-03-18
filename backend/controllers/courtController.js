@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const fs = require("fs");
 const path = require("path");
+const { emitRealtime } = require("../socket");
 
 // ===============================
 // CREATE COURT
@@ -35,6 +36,7 @@ exports.createCourt = async (req, res) => {
       [result.insertId]
     );
 
+    emitRealtime("courts:updated", { action: "created", id: result.insertId });
     res.status(201).json(court[0]);
 
   } catch (err) {
@@ -132,6 +134,7 @@ exports.updateCourt = async (req, res) => {
       [req.params.id]
     );
 
+    emitRealtime("courts:updated", { action: "updated", id: Number(req.params.id) });
     res.json(updated[0]);
 
   } catch (err) {
@@ -178,6 +181,7 @@ exports.deleteCourt = async (req, res) => {
       [req.params.id]
     );
 
+    emitRealtime("courts:updated", { action: "deleted", id: Number(req.params.id) });
     res.json({ message: "Court deleted" });
 
   } catch (err) {

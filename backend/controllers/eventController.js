@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const fs = require("fs");
 const path = require("path");
+const { emitRealtime } = require("../socket");
 
 exports.createEvent = async (req, res) => {
   try {
@@ -33,6 +34,7 @@ exports.createEvent = async (req, res) => {
       [result.insertId]
     );
 
+    emitRealtime("events:updated", { action: "created", id: result.insertId });
     res.status(201).json(event[0]);
   } catch (err) {
     console.error(err);
@@ -122,6 +124,7 @@ exports.updateEvent = async (req, res) => {
       [req.params.id]
     );
 
+    emitRealtime("events:updated", { action: "updated", id: Number(req.params.id) });
     res.json(updated[0]);
   } catch (err) {
     console.error(err);
@@ -158,6 +161,7 @@ exports.deleteEvent = async (req, res) => {
 
     await pool.query("DELETE FROM events WHERE id = ?", [req.params.id]);
 
+    emitRealtime("events:updated", { action: "deleted", id: Number(req.params.id) });
     res.json({ message: "Venue deleted" });
   } catch (err) {
     console.error(err);

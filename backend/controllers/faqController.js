@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { emitRealtime } = require("../socket");
 
 const normalizeStatus = (value, fallback = "active") => {
   if (typeof value === "string") {
@@ -114,6 +115,7 @@ exports.createFaq = async (req, res) => {
     await connection.commit();
 
     const [created] = await pool.query("SELECT * FROM faqs WHERE id = ?", [result.insertId]);
+    emitRealtime("faqs:updated", { action: "created", id: result.insertId });
     res.status(201).json(created[0]);
   } catch (error) {
     await connection.rollback();
@@ -164,6 +166,7 @@ exports.updateFaq = async (req, res) => {
     await connection.commit();
 
     const [updated] = await pool.query("SELECT * FROM faqs WHERE id = ?", [req.params.id]);
+    emitRealtime("faqs:updated", { action: "updated", id: Number(req.params.id) });
     res.json(updated[0]);
   } catch (error) {
     await connection.rollback();
@@ -191,6 +194,7 @@ exports.deleteFaq = async (req, res) => {
     await compactFaqSortOrders(connection);
     await connection.commit();
 
+    emitRealtime("faqs:updated", { action: "deleted", id: Number(req.params.id) });
     res.json({ message: "FAQ deleted" });
   } catch (error) {
     await connection.rollback();
@@ -229,6 +233,7 @@ exports.reorderFaqs = async (req, res) => {
        ORDER BY sort_order ASC, created_at ASC`
     );
 
+    emitRealtime("faqs:updated", { action: "reordered" });
     res.json(faqs);
   } catch (error) {
     console.error(error);

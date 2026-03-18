@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { emitRealtime } = require("../socket");
 
 const hasConflict = async (eventId, bookingDate, startTime, endTime) => {
   const [rows] = await pool.query(
@@ -48,6 +49,12 @@ exports.createEventBooking = async (req, res) => {
       [result.insertId]
     );
 
+    emitRealtime("event-bookings:updated", {
+      action: "created",
+      id: result.insertId,
+      eventId: Number(eventId),
+      bookingDate,
+    });
     res.status(201).json(booking[0]);
   } catch (err) {
     console.error(err);
@@ -120,6 +127,7 @@ exports.adminUpdateEventBookingStatus = async (req, res) => {
       [bookingId]
     );
 
+    emitRealtime("event-bookings:updated", { action: "status-updated", id: Number(bookingId) });
     res.json(booking[0]);
   } catch (err) {
     console.error(err);
@@ -146,6 +154,7 @@ exports.updateEventBookingPayment = async (req, res) => {
       [bookingId]
     );
 
+    emitRealtime("event-bookings:updated", { action: "payment-updated", id: Number(bookingId) });
     res.json(booking[0]);
   } catch (err) {
     console.error(err);

@@ -8,6 +8,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import AppScreen from "../../components/AppScreen";
 import { BOOKINGS_API, EVENT_BOOKINGS_API } from "../../src/config/api";
+import useRealtimeSubscription from "../../src/hooks/useRealtimeSubscription";
 
 const palette = {
   bg: "#F4F8FF",
@@ -26,6 +27,7 @@ const tabs = [
   { key: "court", label: "Court", icon: "sports-tennis" },
   { key: "event", label: "Event", icon: "event" },
 ] as const;
+const HISTORY_REALTIME_EVENTS = ["bookings:updated", "event-bookings:updated"] as const;
 
 const statusColors = {
   APPROVED: "#EAF8F1",
@@ -242,6 +244,14 @@ export default function History() {
     useCallback(() => {
       loadHistory(false);
     }, [loadHistory])
+  );
+
+  useRealtimeSubscription(
+    HISTORY_REALTIME_EVENTS,
+    () => {
+      loadHistory();
+    },
+    Boolean(token)
   );
 
   const activeList = activeTab === "court" ? courtHistory : eventHistory;

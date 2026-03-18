@@ -21,6 +21,7 @@ import axios from "axios";
 import TopHeaderBox from "../../components/TopHeaderBox";
 import { API_BASE, COURT_IMAGES_BASE } from "../../src/config/api";
 import useLiveRefresh from "../../src/hooks/useLiveRefresh";
+import useRealtimeSubscription from "../../src/hooks/useRealtimeSubscription";
 import { clearStoredUser, getStoredUser } from "../../src/utils/auth";
 
 const palette = {
@@ -210,8 +211,10 @@ export default function CourtBooking() {
     }
   }, []);
 
-  useLiveRefresh(loadCourts, { intervalMs: 12000 });
-  useLiveRefresh(loadPlayers, { enabled: Boolean(token), intervalMs: 12000 });
+  useLiveRefresh(loadCourts, { intervalMs: 90000 });
+  useLiveRefresh(loadPlayers, { enabled: Boolean(token), intervalMs: 90000 });
+  useRealtimeSubscription("courts:updated", loadCourts);
+  useRealtimeSubscription("users:updated", loadPlayers, Boolean(token));
 
   const loadBookings = useCallback(async () => {
     if (!token || !selectedCourt) return;
@@ -239,8 +242,9 @@ export default function CourtBooking() {
 
   useLiveRefresh(loadBookings, {
     enabled: Boolean(token && selectedCourt),
-    intervalMs: 10000,
+    intervalMs: 45000,
   });
+  useRealtimeSubscription("bookings:updated", loadBookings, Boolean(token && selectedCourt));
 
   useEffect(() => {
     setSelectedSlot(null);

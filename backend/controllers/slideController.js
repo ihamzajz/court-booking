@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 const pool = require("../config/db");
+const { emitRealtime } = require("../socket");
 
 const slidesDir = path.join(__dirname, "..", "uploads", "slides");
 const getPictureFilename = (pictureValue) => {
@@ -96,6 +97,7 @@ exports.createSlide = async (req, res) => {
     );
 
     const [slides] = await pool.query("SELECT * FROM slides WHERE id = ?", [result.insertId]);
+    emitRealtime("slides:updated", { action: "created", id: result.insertId });
     res.status(201).json(slides[0]);
   } catch (error) {
     console.error(error);
@@ -143,6 +145,7 @@ exports.updateSlide = async (req, res) => {
     );
 
     const [updated] = await pool.query("SELECT * FROM slides WHERE id = ?", [req.params.id]);
+    emitRealtime("slides:updated", { action: "updated", id: Number(req.params.id) });
     res.json(updated[0]);
   } catch (error) {
     console.error(error);
@@ -167,6 +170,7 @@ exports.deleteSlide = async (req, res) => {
     }
 
     await pool.query("DELETE FROM slides WHERE id = ?", [req.params.id]);
+    emitRealtime("slides:updated", { action: "deleted", id: Number(req.params.id) });
     res.json({ message: "Slide deleted" });
   } catch (error) {
     console.error(error);
@@ -207,6 +211,7 @@ exports.reorderSlides = async (req, res) => {
        ORDER BY sort_order ASC, created_at DESC`
     );
 
+    emitRealtime("slides:updated", { action: "reordered" });
     res.json(slides);
   } catch (error) {
     console.error(error);

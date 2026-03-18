@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
+const { emitRealtime } = require("../socket");
 
 exports.getBookingPlayers = async (req, res) => {
   try {
@@ -78,6 +79,7 @@ exports.createUser = async (req, res) => {
       [result.insertId]
     );
 
+    emitRealtime("users:updated", { action: "created", id: result.insertId });
     res.status(201).json(created[0]);
   } catch (error) {
     console.error(error);
@@ -140,6 +142,7 @@ exports.updateUser = async (req, res) => {
       [id]
     );
 
+    emitRealtime("users:updated", { action: "updated", id: Number(id) });
     res.json(updated[0]);
   } catch (error) {
     console.error(error);
@@ -158,6 +161,7 @@ exports.deleteUser = async (req, res) => {
     }
 
     await pool.query("DELETE FROM users WHERE id = ?", [id]);
+    emitRealtime("users:updated", { action: "deleted", id: Number(id) });
     res.json({ message: "User deleted" });
   } catch (error) {
     console.error(error);

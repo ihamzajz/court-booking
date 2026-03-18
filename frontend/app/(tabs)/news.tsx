@@ -15,6 +15,7 @@ import AppScreen from "../../components/AppScreen";
 import TopHeaderBox from "../../components/TopHeaderBox";
 import { NEWS_API, NEWS_IMAGES_BASE } from "../../src/config/api";
 import useLiveRefresh from "../../src/hooks/useLiveRefresh";
+import useRealtimeSubscription from "../../src/hooks/useRealtimeSubscription";
 
 const palette = {
   bg: "#F4F8FF",
@@ -59,7 +60,8 @@ export default function News() {
     }
   }, []);
 
-  useLiveRefresh(loadNews, { intervalMs: 12000 });
+  useLiveRefresh(loadNews, { intervalMs: 60000 });
+  useRealtimeSubscription("news:updated", loadNews);
 
   const cardWidth = useMemo(() => {
     const innerWidth = Math.min(width - 40, 560);

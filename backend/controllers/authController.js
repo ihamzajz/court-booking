@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { emitRealtime } = require("../socket");
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -84,6 +85,7 @@ exports.registerUser = async (req, res) => {
       ]
     );
 
+    emitRealtime("users:updated", { action: "registered" });
     res.status(201).json({
       message: "Registered successfully. Await admin approval.",
     });
@@ -167,6 +169,7 @@ exports.changePassword = async (req, res) => {
 
     await pool.query("UPDATE users SET password = ? WHERE id = ?", [hashed, req.user.id]);
 
+    emitRealtime("users:updated", { action: "password-changed", id: req.user.id });
     res.json({ message: "Password updated successfully" });
   } catch (error) {
     console.error(error);

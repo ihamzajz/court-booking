@@ -17,6 +17,7 @@ import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { AUTH_API } from "../../src/config/api";
 import AppScreen from "../../components/AppScreen";
 import useLiveRefresh from "../../src/hooks/useLiveRefresh";
+import useRealtimeSubscription from "../../src/hooks/useRealtimeSubscription";
 import { clearStoredUser, getStoredUser, setStoredUser } from "../../src/utils/auth";
 
 const palette = {
@@ -80,7 +81,8 @@ export default function Profile() {
     }
   }, []);
 
-  useLiveRefresh(loadUser, { intervalMs: 30000 });
+  useLiveRefresh(loadUser, { intervalMs: 90000 });
+  useRealtimeSubscription("users:updated", loadUser);
 
   const logout = async () => {
     await clearStoredUser();

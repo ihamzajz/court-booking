@@ -21,6 +21,7 @@ import axios from "axios";
 import TopHeaderBox from "../../components/TopHeaderBox";
 import { API_BASE, EVENT_BOOKINGS_API, EVENT_IMAGES_BASE } from "../../src/config/api";
 import useLiveRefresh from "../../src/hooks/useLiveRefresh";
+import useRealtimeSubscription from "../../src/hooks/useRealtimeSubscription";
 import { clearStoredUser, getStoredUser } from "../../src/utils/auth";
 
 const palette = {
@@ -155,7 +156,8 @@ export default function EventBooking() {
     }
   }, []);
 
-  useLiveRefresh(loadVenues, { intervalMs: 12000 });
+  useLiveRefresh(loadVenues, { intervalMs: 90000 });
+  useRealtimeSubscription("events:updated", loadVenues);
 
   const loadBookings = useCallback(async () => {
     if (!token || !selectedVenue) return;
@@ -180,8 +182,13 @@ export default function EventBooking() {
 
   useLiveRefresh(loadBookings, {
     enabled: Boolean(token && selectedVenue),
-    intervalMs: 10000,
+    intervalMs: 45000,
   });
+  useRealtimeSubscription(
+    "event-bookings:updated",
+    loadBookings,
+    Boolean(token && selectedVenue)
+  );
 
   useEffect(() => {
     setSelectedSlot(null);

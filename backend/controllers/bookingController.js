@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const MAX_BOOKING_PLAYERS = 4;
+const { emitRealtime } = require("../socket");
 
 const hasConflict = async (courtId, bookingDate, startTime, endTime) => {
   const [rows] = await pool.query(
@@ -87,6 +88,12 @@ exports.createBooking = async (req, res) => {
       [result.insertId]
     );
 
+    emitRealtime("bookings:updated", {
+      action: "created",
+      id: result.insertId,
+      courtId: Number(courtId),
+      bookingDate,
+    });
     res.status(201).json(booking[0]);
   } catch (err) {
     console.error(err);
@@ -143,6 +150,7 @@ exports.cancelBooking = async (req, res) => {
       [bookingId]
     );
 
+    emitRealtime("bookings:updated", { action: "cancelled", id: Number(bookingId) });
     res.json({ message: "Booking cancelled" });
   } catch (err) {
     console.error(err);
@@ -169,6 +177,7 @@ exports.adminUpdateStatus = async (req, res) => {
       [bookingId]
     );
 
+    emitRealtime("bookings:updated", { action: "status-updated", id: Number(bookingId) });
     res.json(booking[0]);
   } catch (err) {
     console.error(err);
@@ -195,6 +204,7 @@ exports.updatePayment = async (req, res) => {
       [bookingId]
     );
 
+    emitRealtime("bookings:updated", { action: "payment-updated", id: Number(bookingId) });
     res.json(booking[0]);
   } catch (err) {
     console.error(err);

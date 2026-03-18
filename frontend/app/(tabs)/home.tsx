@@ -17,6 +17,7 @@ import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import AppScreen from "../../components/AppScreen";
 import { SLIDES_API, SLIDE_IMAGES_BASE } from "../../src/config/api";
 import useLiveRefresh from "../../src/hooks/useLiveRefresh";
+import useRealtimeSubscription from "../../src/hooks/useRealtimeSubscription";
 
 type MaterialIconName = React.ComponentProps<typeof MaterialIcons>["name"];
 type QuickAction = {
@@ -74,7 +75,8 @@ export default function Home() {
     }
   }, []);
 
-  useLiveRefresh(loadSlides, { intervalMs: 12000 });
+  useLiveRefresh(loadSlides, { intervalMs: 60000 });
+  useRealtimeSubscription("slides:updated", loadSlides);
 
   const runEntranceAnimation = useCallback(() => {
     heroAnim.stopAnimation();

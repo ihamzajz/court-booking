@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 const pool = require("../config/db");
+const { emitRealtime } = require("../socket");
 
 const newsDir = path.join(__dirname, "..", "uploads", "news");
 
@@ -116,6 +117,7 @@ exports.createNews = async (req, res) => {
     );
 
     const [created] = await pool.query("SELECT * FROM news WHERE id = ?", [result.insertId]);
+    emitRealtime("news:updated", { action: "created", id: result.insertId });
     res.status(201).json(created[0]);
   } catch (error) {
     console.error(error);
@@ -156,6 +158,7 @@ exports.updateNews = async (req, res) => {
     );
 
     const [updated] = await pool.query("SELECT * FROM news WHERE id = ?", [req.params.id]);
+    emitRealtime("news:updated", { action: "updated", id: Number(req.params.id) });
     res.json(updated[0]);
   } catch (error) {
     console.error(error);
@@ -176,6 +179,7 @@ exports.deleteNews = async (req, res) => {
     }
 
     await pool.query("DELETE FROM news WHERE id = ?", [req.params.id]);
+    emitRealtime("news:updated", { action: "deleted", id: Number(req.params.id) });
     res.json({ message: "News deleted" });
   } catch (error) {
     console.error(error);
@@ -213,6 +217,7 @@ exports.reorderNews = async (req, res) => {
        ORDER BY sort_order ASC, created_at DESC`
     );
 
+    emitRealtime("news:updated", { action: "reordered" });
     res.json(news);
   } catch (error) {
     console.error(error);

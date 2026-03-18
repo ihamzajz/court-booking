@@ -8,6 +8,7 @@ import AppScreen, { appPalette } from "../../components/AppScreen";
 import TopHeaderBox from "../../components/TopHeaderBox";
 import { FAQS_API } from "../../src/config/api";
 import useLiveRefresh from "../../src/hooks/useLiveRefresh";
+import useRealtimeSubscription from "../../src/hooks/useRealtimeSubscription";
 
 export default function Faqs() {
   const tabBarHeight = useBottomTabBarHeight();
@@ -30,7 +31,8 @@ export default function Faqs() {
     }
   }, []);
 
-  useLiveRefresh(loadFaqs, { intervalMs: 15000 });
+  useLiveRefresh(loadFaqs, { intervalMs: 60000 });
+  useRealtimeSubscription("faqs:updated", loadFaqs);
 
   const toggleFAQ = (index) => {
     setActiveIndex(activeIndex === index ? null : index);
