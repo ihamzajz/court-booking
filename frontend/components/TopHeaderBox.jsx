@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
-export default function TopHeaderBox({ title, onBack, style, titleStyle }) {
+export default function TopHeaderBox({ title, onBack, style = null, titleStyle = null }) {
   return (
     <LinearGradient
       colors={["#000080", "#00BFFF"]}

@@ -14,13 +14,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import axios from "axios";
 
 import TopHeaderBox from "../../components/TopHeaderBox";
 import { API_BASE, COURT_IMAGES_BASE } from "../../src/config/api";
+import useLiveRefresh from "../../src/hooks/useLiveRefresh";
+import { clearStoredUser, getStoredUser } from "../../src/utils/auth";
 
 const palette = {
   bg: "#F5F7FC",
@@ -143,9 +144,12 @@ export default function CourtBooking() {
   );
   useEffect(() => {
     const loadToken = async () => {
-      const stored = await AsyncStorage.getItem("user");
-      if (!stored) return;
-      const user = JSON.parse(stored);
+      const user = await getStoredUser();
+      if (!user?.token) {
+        await clearStoredUser();
+        router.replace("/login");
+        return;
+      }
       const selfPlayer = createPlayerSummary(user);
       setToken(user.token);
       setCurrentUser(user);
@@ -206,13 +210,8 @@ export default function CourtBooking() {
     }
   }, []);
 
-  useEffect(() => {
-    loadCourts();
-  }, [loadCourts]);
-
-  useEffect(() => {
-    loadPlayers();
-  }, [loadPlayers]);
+  useLiveRefresh(loadCourts, { intervalMs: 12000 });
+  useLiveRefresh(loadPlayers, { enabled: Boolean(token), intervalMs: 12000 });
 
   const loadBookings = useCallback(async () => {
     if (!token || !selectedCourt) return;
@@ -238,9 +237,10 @@ export default function CourtBooking() {
     }
   }, [selectedCourt, selectedDate, token]);
 
-  useEffect(() => {
-    loadBookings();
-  }, [loadBookings]);
+  useLiveRefresh(loadBookings, {
+    enabled: Boolean(token && selectedCourt),
+    intervalMs: 10000,
+  });
 
   useEffect(() => {
     setSelectedSlot(null);

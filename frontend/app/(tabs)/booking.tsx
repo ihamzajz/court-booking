@@ -1,12 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import AppScreen from "../../components/AppScreen";
+
+type MaterialIconName = React.ComponentProps<typeof MaterialIcons>["name"];
+type GradientPair = readonly [string, string];
+type BookingCard = {
+  title: string;
+  subtitle: string;
+  icon: MaterialIconName;
+  link: Href;
+  colors: GradientPair;
+  outlined?: boolean;
+};
 
 const palette = {
   bg: "#F4F8FF",
@@ -34,7 +45,7 @@ export default function Booking() {
     loadUser();
   }, []);
 
-  const cards = [
+  const cards: BookingCard[] = [
     {
       title: "Court Booking",
       subtitle: "Choose court, time, and availability in a cleaner booking flow.",

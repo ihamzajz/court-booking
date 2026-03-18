@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -6,15 +6,15 @@ import {
   ActivityIndicator,
   Pressable,
   Image,
-  ScrollView,
   useWindowDimensions,
 } from "react-native";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import { router, useFocusEffect } from "expo-router";
+import { router } from "expo-router";
 
 import AppScreen from "../../components/AppScreen";
 import TopHeaderBox from "../../components/TopHeaderBox";
 import { NEWS_API, NEWS_IMAGES_BASE } from "../../src/config/api";
+import useLiveRefresh from "../../src/hooks/useLiveRefresh";
 
 const palette = {
   bg: "#F4F8FF",
@@ -59,15 +59,7 @@ export default function News() {
     }
   }, []);
 
-  useEffect(() => {
-    loadNews();
-  }, [loadNews]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadNews();
-    }, [loadNews])
-  );
+  useLiveRefresh(loadNews, { intervalMs: 12000 });
 
   const cardWidth = useMemo(() => {
     const innerWidth = Math.min(width - 40, 560);
@@ -83,34 +75,32 @@ export default function News() {
           <ActivityIndicator color={palette.navy} />
         </View>
       ) : items.length ? (
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={styles.grid}>
-            {items.map((item) => (
-              <Pressable
-                key={item.id}
-                style={[styles.card, { width: cardWidth }]}
-                onPress={() => router.push(`/news/${item.id}`)}
-              >
-                <Image
-                  source={
-                    buildNewsImageUrl(item.picture)
-                      ? { uri: buildNewsImageUrl(item.picture) }
-                      : require("../../assets/images/icon.png")
-                  }
-                  style={styles.cardImage}
-                />
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardHeading} numberOfLines={2}>
-                    {item.heading}
-                  </Text>
-                  <Text style={styles.cardExcerpt} numberOfLines={3}>
-                    {getExcerpt(item.content)}
-                  </Text>
-                </View>
-              </Pressable>
-            ))}
-          </View>
-        </ScrollView>
+        <View style={styles.grid}>
+          {items.map((item) => (
+            <Pressable
+              key={item.id}
+              style={[styles.card, { width: cardWidth }]}
+              onPress={() => router.push(`/news/${item.id}`)}
+            >
+              <Image
+                source={
+                  buildNewsImageUrl(item.picture)
+                    ? { uri: buildNewsImageUrl(item.picture) }
+                    : require("../../assets/images/icon.png")
+                }
+                style={styles.cardImage}
+              />
+              <View style={styles.cardBody}>
+                <Text style={styles.cardHeading} numberOfLines={2}>
+                  {item.heading}
+                </Text>
+                <Text style={styles.cardExcerpt} numberOfLines={3}>
+                  {getExcerpt(item.content)}
+                </Text>
+              </View>
+            </Pressable>
+          ))}
+        </View>
       ) : (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>No news available</Text>

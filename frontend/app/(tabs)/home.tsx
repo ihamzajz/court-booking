@@ -9,13 +9,21 @@ import {
   Animated,
 } from "react-native";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, type Href } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import AppScreen from "../../components/AppScreen";
 import { SLIDES_API, SLIDE_IMAGES_BASE } from "../../src/config/api";
+import useLiveRefresh from "../../src/hooks/useLiveRefresh";
+
+type MaterialIconName = React.ComponentProps<typeof MaterialIcons>["name"];
+type QuickAction = {
+  title: string;
+  link: Href;
+  icon: MaterialIconName;
+};
 
 const palette = {
   bg: "#F4F8FF",
@@ -66,9 +74,7 @@ export default function Home() {
     }
   }, []);
 
-  useEffect(() => {
-    loadSlides();
-  }, [loadSlides]);
+  useLiveRefresh(loadSlides, { intervalMs: 12000 });
 
   const runEntranceAnimation = useCallback(() => {
     heroAnim.stopAnimation();
@@ -108,13 +114,12 @@ export default function Home() {
 
   useFocusEffect(
     useCallback(() => {
-      loadSlides();
       const animation = runEntranceAnimation();
 
       return () => {
         animation.stop();
       };
-    }, [loadSlides, runEntranceAnimation])
+    }, [runEntranceAnimation])
   );
 
   useEffect(() => {
@@ -146,7 +151,7 @@ export default function Home() {
     [slideCardWidth]
   );
 
-  const quickActions = [
+  const quickActions: QuickAction[] = [
     { title: "Court Booking", link: "/(tabs)/court", icon: "sports-tennis" },
     { title: "Event Booking", link: "/(tabs)/event", icon: "emoji-events" },
     { title: "History", link: "/(tabs)/history", icon: "history" },
@@ -312,7 +317,7 @@ export default function Home() {
         <View style={styles.quickGrid}>
           {quickActions.map((item, index) =>
             <Pressable
-              key={item.link}
+              key={item.title}
               style={styles.quickCard}
               onPress={() => router.push(item.link)}
             >

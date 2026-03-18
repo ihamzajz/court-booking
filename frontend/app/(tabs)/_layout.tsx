@@ -1,7 +1,10 @@
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
+import { useEffect, useState } from "react";
 import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import { View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { getStoredUser } from "../../src/utils/auth";
 
 const palette = {
   bg: "#F4F8FF",
@@ -16,15 +19,47 @@ const palette = {
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const bottomInset = Math.max(insets.bottom, 0);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const ensureSession = async () => {
+      const storedUser = await getStoredUser();
+
+      if (!isMounted) return;
+
+      if (!storedUser?.token) {
+        router.replace("/login");
+        return;
+      }
+
+      setIsReady(true);
+    };
+
+    ensureSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (!isReady) {
+    return <View style={styles.bootScreen} />;
+  }
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
+        lazy: true,
         tabBarHideOnKeyboard: true,
         sceneStyle: {
           backgroundColor: palette.bg,
         },
+        tabBarActiveBackgroundColor: "transparent",
+        tabBarInactiveBackgroundColor: "transparent",
+        tabBarBackground: () => <View style={styles.tabBarBackground} />,
         tabBarStyle: [
           styles.tabBar,
           {
@@ -117,8 +152,9 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     borderRadius: 24,
+    overflow: "hidden",
     borderTopWidth: 0,
-    backgroundColor: palette.surface,
+    backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: palette.surfaceEdge,
     paddingTop: 10,
@@ -129,6 +165,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 20,
     elevation: 14,
+  },
+  tabBarBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: palette.surface,
   },
   tabBarItem: {
     height: 44,
@@ -159,5 +199,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,
+  },
+  bootScreen: {
+    flex: 1,
+    backgroundColor: palette.bg,
   },
 });

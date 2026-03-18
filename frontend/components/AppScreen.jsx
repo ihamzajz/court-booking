@@ -29,12 +29,13 @@ export default function AppScreen({
   barStyle = "dark-content",
   scrollable = true,
   keyboardAware = false,
-  contentContainerStyle,
-  style,
+  contentContainerStyle = null,
+  style = null,
   edges = ["top", "left", "right"],
   bottomOffset = 24,
   horizontalPadding = 20,
   maxWidth = 560,
+  scrollProps = undefined,
 }) {
   const { height } = useWindowDimensions();
 
@@ -43,7 +44,7 @@ export default function AppScreen({
       style={[
         styles.page,
         {
-          minHeight: Math.max(height - 24, 0),
+          minHeight: Math.max(height, 0),
           paddingHorizontal: horizontalPadding,
           paddingBottom: bottomOffset,
           maxWidth,
@@ -57,16 +58,18 @@ export default function AppScreen({
 
   const body = scrollable ? (
     <ScrollView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor }]}
       contentContainerStyle={styles.flexGrow}
       showsVerticalScrollIndicator={false}
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
       keyboardShouldPersistTaps="handled"
+      overScrollMode="never"
+      {...scrollProps}
     >
       {content}
     </ScrollView>
   ) : (
-    <View style={[styles.flex, styles.flexGrow]}>{content}</View>
+    <View style={[styles.flex, styles.flexGrow, { backgroundColor }]}>{content}</View>
   );
 
   return (

@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity, Animated, ActivityIndicator } from "react-native";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { router, useFocusEffect } from "expo-router";
@@ -7,6 +7,7 @@ import { router, useFocusEffect } from "expo-router";
 import AppScreen, { appPalette } from "../../components/AppScreen";
 import TopHeaderBox from "../../components/TopHeaderBox";
 import { FAQS_API } from "../../src/config/api";
+import useLiveRefresh from "../../src/hooks/useLiveRefresh";
 
 export default function Faqs() {
   const tabBarHeight = useBottomTabBarHeight();
@@ -29,9 +30,7 @@ export default function Faqs() {
     }
   }, []);
 
-  useEffect(() => {
-    loadFaqs();
-  }, [loadFaqs]);
+  useLiveRefresh(loadFaqs, { intervalMs: 15000 });
 
   const toggleFAQ = (index) => {
     setActiveIndex(activeIndex === index ? null : index);
@@ -39,7 +38,6 @@ export default function Faqs() {
 
   useFocusEffect(
     useCallback(() => {
-      loadFaqs();
       titleAnim.stopAnimation();
       cardsAnim.stopAnimation();
 
@@ -66,7 +64,7 @@ export default function Faqs() {
       return () => {
         animation.stop();
       };
-    }, [cardsAnim, loadFaqs, titleAnim])
+    }, [cardsAnim, titleAnim])
   );
 
   const titleAnimatedStyle = {

@@ -1,5 +1,11 @@
+const configuredBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
+
+if (!configuredBaseUrl) {
+  throw new Error("EXPO_PUBLIC_API_BASE_URL is not set in frontend/.env");
+}
+
 // Single source of truth for frontend API host.
-export const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+export const BASE_URL = configuredBaseUrl.replace(/\/+$/, "");
 
 
 export const API_BASE = `${BASE_URL}/api`;

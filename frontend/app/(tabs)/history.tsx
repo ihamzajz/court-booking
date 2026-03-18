@@ -25,7 +25,7 @@ const palette = {
 const tabs = [
   { key: "court", label: "Court", icon: "sports-tennis" },
   { key: "event", label: "Event", icon: "event" },
-];
+] as const;
 
 const statusColors = {
   APPROVED: "#EAF8F1",

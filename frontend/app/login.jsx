@@ -8,11 +8,11 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 
 import { AUTH_API } from "../src/config/api";
 import AppScreen from "../components/AppScreen";
+import { setStoredUser } from "../src/utils/auth";
 
 export default function Login() {
   const [identifier, setIdentifier] = useState("");
@@ -57,7 +57,7 @@ export default function Login() {
         return;
       }
 
-      await AsyncStorage.setItem("user", JSON.stringify(data));
+      await setStoredUser(data);
       router.replace("/(tabs)/home");
     } catch {
       setError("Network error. Could not reach server. Check IP/WiFi and try again.");

@@ -14,13 +14,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import axios from "axios";
 
 import TopHeaderBox from "../../components/TopHeaderBox";
 import { API_BASE, EVENT_BOOKINGS_API, EVENT_IMAGES_BASE } from "../../src/config/api";
+import useLiveRefresh from "../../src/hooks/useLiveRefresh";
+import { clearStoredUser, getStoredUser } from "../../src/utils/auth";
 
 const palette = {
   bg: "#F5F7FC",
@@ -131,9 +132,12 @@ export default function EventBooking() {
 
   useEffect(() => {
     const loadToken = async () => {
-      const stored = await AsyncStorage.getItem("user");
-      if (!stored) return;
-      const user = JSON.parse(stored);
+      const user = await getStoredUser();
+      if (!user?.token) {
+        await clearStoredUser();
+        router.replace("/login");
+        return;
+      }
       setToken(user.token);
     };
     loadToken();
@@ -151,9 +155,7 @@ export default function EventBooking() {
     }
   }, []);
 
-  useEffect(() => {
-    loadVenues();
-  }, [loadVenues]);
+  useLiveRefresh(loadVenues, { intervalMs: 12000 });
 
   const loadBookings = useCallback(async () => {
     if (!token || !selectedVenue) return;
@@ -176,9 +178,10 @@ export default function EventBooking() {
     }
   }, [selectedVenue, selectedDate, token]);
 
-  useEffect(() => {
-    loadBookings();
-  }, [loadBookings]);
+  useLiveRefresh(loadBookings, {
+    enabled: Boolean(token && selectedVenue),
+    intervalMs: 10000,
+  });
 
   useEffect(() => {
     setSelectedSlot(null);

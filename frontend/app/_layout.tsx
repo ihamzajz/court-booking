@@ -20,29 +20,37 @@ export default function RootLayout() {
   if (!defaultsApplied && fontsLoaded) {
     defaultsApplied = true;
 
-    Text.defaultProps = Text.defaultProps || {};
-    Text.defaultProps.style = [{ fontFamily: "Poppins_500Medium" }, Text.defaultProps.style];
+    const TextComponent = Text as any;
+    const TextInputComponent = TextInput as any;
 
-    TextInput.defaultProps = TextInput.defaultProps || {};
-    TextInput.defaultProps.style = [
+    TextComponent.defaultProps = TextComponent.defaultProps || {};
+    TextComponent.defaultProps.style = [
       { fontFamily: "Poppins_500Medium" },
-      TextInput.defaultProps.style,
+      TextComponent.defaultProps.style,
+    ];
+
+    TextInputComponent.defaultProps = TextInputComponent.defaultProps || {};
+    TextInputComponent.defaultProps.style = [
+      { fontFamily: "Poppins_500Medium" },
+      TextInputComponent.defaultProps.style,
     ];
   }
 
   if (!renderPatchApplied && fontsLoaded) {
     renderPatchApplied = true;
 
-    const originalTextRender = Text.render;
-    Text.render = function render(...args) {
+    const TextComponent = Text as any;
+    const TextInputComponent = TextInput as any;
+    const originalTextRender = TextComponent.render;
+    TextComponent.render = function render(...args) {
       const origin = originalTextRender.call(this, ...args);
       return React.cloneElement(origin, {
         style: [{ fontFamily: "Poppins_500Medium" }, origin.props.style],
       });
     };
 
-    const originalTextInputRender = TextInput.render;
-    TextInput.render = function render(...args) {
+    const originalTextInputRender = TextInputComponent.render;
+    TextInputComponent.render = function render(...args) {
       const origin = originalTextInputRender.call(this, ...args);
       return React.cloneElement(origin, {
         style: [{ fontFamily: "Poppins_500Medium" }, origin.props.style],

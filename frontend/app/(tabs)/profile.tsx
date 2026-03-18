@@ -8,8 +8,7 @@ import {
   ActivityIndicator,
   Pressable,
 } from "react-native";
-import { useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useCallback, useState } from "react";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -17,6 +16,8 @@ import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import { AUTH_API } from "../../src/config/api";
 import AppScreen from "../../components/AppScreen";
+import useLiveRefresh from "../../src/hooks/useLiveRefresh";
+import { clearStoredUser, getStoredUser, setStoredUser } from "../../src/utils/auth";
 
 const palette = {
   bg: "#F4F8FF",
@@ -42,16 +43,47 @@ export default function Profile() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  useEffect(() => {
-    const loadUser = async () => {
-      const stored = await AsyncStorage.getItem("user");
-      if (stored) setUser(JSON.parse(stored));
-    };
-    loadUser();
+  const loadUser = useCallback(async () => {
+    const storedUser = await getStoredUser();
+
+    if (!storedUser?.token) {
+      setUser(null);
+      router.replace("/login");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${AUTH_API}/me`, {
+        headers: {
+          Authorization: `Bearer ${storedUser.token}`,
+        },
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data) {
+        if (res.status === 401) {
+          await clearStoredUser();
+          router.replace("/login");
+          return;
+        }
+
+        setUser(storedUser);
+        return;
+      }
+
+      const nextUser = { ...storedUser, ...data, token: storedUser.token };
+      await setStoredUser(nextUser);
+      setUser(nextUser);
+    } catch {
+      setUser(storedUser);
+    }
   }, []);
 
+  useLiveRefresh(loadUser, { intervalMs: 30000 });
+
   const logout = async () => {
-    await AsyncStorage.removeItem("user");
+    await clearStoredUser();
     router.replace("/login");
   };
 

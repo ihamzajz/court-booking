@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 import { router } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { getStoredUser } from "../src/utils/auth";
 
 export default function Index() {
   useEffect(() => {
     const init = async () => {
-      const user = await AsyncStorage.getItem("user");
+      const user = await getStoredUser();
 
       if (user) {
         router.replace("/(tabs)/home"); // logged in
