@@ -2,6 +2,7 @@ const pool = require("../config/db");
 const fs = require("fs");
 const path = require("path");
 const { emitRealtime } = require("../socket");
+const { isDuplicateEntryError } = require("../utils/dbErrors");
 
 exports.createEvent = async (req, res) => {
   try {
@@ -38,6 +39,9 @@ exports.createEvent = async (req, res) => {
     res.status(201).json(event[0]);
   } catch (err) {
     console.error(err);
+    if (isDuplicateEntryError(err)) {
+      return res.status(409).json({ message: "Venue already exists" });
+    }
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -51,6 +55,9 @@ exports.getEvents = async (_req, res) => {
     res.json(events);
   } catch (err) {
     console.error(err);
+    if (isDuplicateEntryError(err)) {
+      return res.status(409).json({ message: "Venue already exists" });
+    }
     res.status(500).json({ message: "Server error" });
   }
 };

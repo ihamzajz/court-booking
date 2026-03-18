@@ -1,9 +1,10 @@
 const pool = require("../config/db");
 const MAX_BOOKING_PLAYERS = 4;
 const { emitRealtime } = require("../socket");
+const { withNamedLock } = require("../utils/locking");
 
-const hasConflict = async (courtId, bookingDate, startTime, endTime) => {
-  const [rows] = await pool.query(
+const hasConflict = async (connection, courtId, bookingDate, startTime, endTime) => {
+  const [rows] = await connection.query(
     `SELECT id FROM bookings
      WHERE court_id = ?
        AND booking_date = ?
@@ -29,75 +30,94 @@ exports.createBooking = async (req, res) => {
   }
 
   try {
-    const normalizedPlayerIds = Array.from(
-      new Set([userId, ...playerIds.map((id) => Number(id)).filter(Boolean)])
-    );
+    const booking = await withNamedLock(
+      `booking:court:${courtId}:${bookingDate}`,
+      async (connection) => {
+        const normalizedPlayerIds = Array.from(
+          new Set([userId, ...playerIds.map((id) => Number(id)).filter(Boolean)])
+        );
 
-    if (normalizedPlayerIds.length > MAX_BOOKING_PLAYERS) {
-      return res.status(400).json({
-        message: "Booking can have maximum 4 players including you",
-      });
-    }
+        if (normalizedPlayerIds.length > MAX_BOOKING_PLAYERS) {
+          const error = new Error("Booking can have maximum 4 players including you");
+          error.statusCode = 400;
+          throw error;
+        }
 
-    const [playerRows] = await pool.query(
-      `SELECT id, name, cm_no, fees_status
-       FROM users
-       WHERE status = 'active'
-         AND id IN (?)`,
-      [normalizedPlayerIds]
-    );
+        await connection.beginTransaction();
 
-    const players = normalizedPlayerIds
-      .map((id) => playerRows.find((player) => player.id === id))
-      .filter(Boolean);
+        try {
+          const [playerRows] = await connection.query(
+            `SELECT id, name, cm_no, fees_status
+             FROM users
+             WHERE status = 'active'
+               AND id IN (?)`,
+            [normalizedPlayerIds]
+          );
 
-    if (!players.some((player) => player.id === userId)) {
-      return res.status(400).json({ message: "Booking user must be included as player 1" });
-    }
+          const players = normalizedPlayerIds
+            .map((id) => playerRows.find((player) => player.id === id))
+            .filter(Boolean);
 
-    const defaulterPlayer = players.find(
-      (player) =>
-        player.id !== userId &&
-        String(player.fees_status || "paid").toLowerCase() === "defaulter"
-    );
+          if (!players.some((player) => player.id === userId)) {
+            const error = new Error("Booking user must be included as player 1");
+            error.statusCode = 400;
+            throw error;
+          }
 
-    if (defaulterPlayer) {
-      return res.status(400).json({
-        message: "This user is defaulter. Select other user.",
-      });
-    }
+          const defaulterPlayer = players.find(
+            (player) =>
+              player.id !== userId &&
+              String(player.fees_status || "paid").toLowerCase() === "defaulter"
+          );
 
-    const conflict = await hasConflict(courtId, bookingDate, startTime, endTime);
-    if (conflict) {
-      return res.status(409).json({ message: "Time slot not available" });
-    }
+          if (defaulterPlayer) {
+            const error = new Error("This user is defaulter. Select other user.");
+            error.statusCode = 400;
+            throw error;
+          }
 
-    const [result] = await pool.query(
-      `INSERT INTO bookings
-        (user_id, court_id, booking_type, booking_date, start_time, end_time, players_json)
-       VALUES (?, ?, 'COURT', ?, ?, ?, ?)`,
-      [userId, courtId, bookingDate, startTime, endTime, JSON.stringify(players)]
-    );
+          const conflict = await hasConflict(connection, courtId, bookingDate, startTime, endTime);
+          if (conflict) {
+            const error = new Error("Time slot not available");
+            error.statusCode = 409;
+            throw error;
+          }
 
-    const [booking] = await pool.query(
-      `SELECT b.*, u.name AS user_name, c.name AS court_name
-       FROM bookings b
-       JOIN users u ON b.user_id = u.id
-       JOIN courts c ON b.court_id = c.id
-       WHERE b.id = ?`,
-      [result.insertId]
+          const [result] = await connection.query(
+            `INSERT INTO bookings
+              (user_id, court_id, booking_type, booking_date, start_time, end_time, players_json)
+             VALUES (?, ?, 'COURT', ?, ?, ?, ?)`,
+            [userId, courtId, bookingDate, startTime, endTime, JSON.stringify(players)]
+          );
+
+          const [rows] = await connection.query(
+            `SELECT b.*, u.name AS user_name, c.name AS court_name
+             FROM bookings b
+             JOIN users u ON b.user_id = u.id
+             JOIN courts c ON b.court_id = c.id
+             WHERE b.id = ?`,
+            [result.insertId]
+          );
+
+          await connection.commit();
+          return rows[0];
+        } catch (error) {
+          await connection.rollback();
+          throw error;
+        }
+      }
     );
 
     emitRealtime("bookings:updated", {
       action: "created",
-      id: result.insertId,
+      id: booking.id,
       courtId: Number(courtId),
       bookingDate,
     });
-    res.status(201).json(booking[0]);
+    res.status(201).json(booking);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Booking failed" });
+    res.status(err.statusCode || 500).json({ message: err.message || "Booking failed" });
   }
 };
 

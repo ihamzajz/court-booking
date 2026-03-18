@@ -2,6 +2,7 @@ const pool = require("../config/db");
 const fs = require("fs");
 const path = require("path");
 const { emitRealtime } = require("../socket");
+const { isDuplicateEntryError } = require("../utils/dbErrors");
 
 // ===============================
 // CREATE COURT
@@ -41,6 +42,9 @@ exports.createCourt = async (req, res) => {
 
   } catch (err) {
     console.error(err);
+    if (isDuplicateEntryError(err)) {
+      return res.status(409).json({ message: "Court already exists" });
+    }
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -59,6 +63,9 @@ exports.getCourts = async (req, res) => {
 
   } catch (err) {
     console.error(err);
+    if (isDuplicateEntryError(err)) {
+      return res.status(409).json({ message: "Court already exists" });
+    }
     res.status(500).json({ message: "Server error" });
   }
 };

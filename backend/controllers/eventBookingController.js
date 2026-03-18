@@ -1,8 +1,9 @@
 const pool = require("../config/db");
 const { emitRealtime } = require("../socket");
+const { withNamedLock } = require("../utils/locking");
 
-const hasConflict = async (eventId, bookingDate, startTime, endTime) => {
-  const [rows] = await pool.query(
+const hasConflict = async (connection, eventId, bookingDate, startTime, endTime) => {
+  const [rows] = await connection.query(
     `SELECT id FROM event_bookings
      WHERE event_id = ?
        AND booking_date = ?
@@ -28,37 +29,54 @@ exports.createEventBooking = async (req, res) => {
   }
 
   try {
-    const conflict = await hasConflict(eventId, bookingDate, startTime, endTime);
-    if (conflict) {
-      return res.status(409).json({ message: "Time slot not available" });
-    }
+    const booking = await withNamedLock(
+      `booking:event:${eventId}:${bookingDate}`,
+      async (connection) => {
+        await connection.beginTransaction();
 
-    const [result] = await pool.query(
-      `INSERT INTO event_bookings
-        (user_id, event_id, booking_date, start_time, end_time)
-       VALUES (?, ?, ?, ?, ?)`,
-      [userId, eventId, bookingDate, startTime, endTime]
-    );
+        try {
+          const conflict = await hasConflict(connection, eventId, bookingDate, startTime, endTime);
+          if (conflict) {
+            const error = new Error("Time slot not available");
+            error.statusCode = 409;
+            throw error;
+          }
 
-    const [booking] = await pool.query(
-      `SELECT eb.*, u.name AS user_name, u.email AS user_email, e.name AS event_name
-       FROM event_bookings eb
-       JOIN users u ON eb.user_id = u.id
-       JOIN events e ON eb.event_id = e.id
-       WHERE eb.id = ?`,
-      [result.insertId]
+          const [result] = await connection.query(
+            `INSERT INTO event_bookings
+              (user_id, event_id, booking_date, start_time, end_time)
+             VALUES (?, ?, ?, ?, ?)`,
+            [userId, eventId, bookingDate, startTime, endTime]
+          );
+
+          const [rows] = await connection.query(
+            `SELECT eb.*, u.name AS user_name, u.email AS user_email, e.name AS event_name
+             FROM event_bookings eb
+             JOIN users u ON eb.user_id = u.id
+             JOIN events e ON eb.event_id = e.id
+             WHERE eb.id = ?`,
+            [result.insertId]
+          );
+
+          await connection.commit();
+          return rows[0];
+        } catch (error) {
+          await connection.rollback();
+          throw error;
+        }
+      }
     );
 
     emitRealtime("event-bookings:updated", {
       action: "created",
-      id: result.insertId,
+      id: booking.id,
       eventId: Number(eventId),
       bookingDate,
     });
-    res.status(201).json(booking[0]);
+    res.status(201).json(booking);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Event booking failed" });
+    res.status(err.statusCode || 500).json({ message: err.message || "Event booking failed" });
   }
 };
 

@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
 const { emitRealtime } = require("../socket");
+const { isDuplicateEntryError } = require("../utils/dbErrors");
 
 exports.getBookingPlayers = async (req, res) => {
   try {
@@ -83,6 +84,9 @@ exports.createUser = async (req, res) => {
     res.status(201).json(created[0]);
   } catch (error) {
     console.error(error);
+    if (isDuplicateEntryError(error)) {
+      return res.status(409).json({ message: "User with this email or username already exists" });
+    }
     res.status(500).json({ message: "Failed to create user" });
   }
 };
@@ -146,6 +150,9 @@ exports.updateUser = async (req, res) => {
     res.json(updated[0]);
   } catch (error) {
     console.error(error);
+    if (isDuplicateEntryError(error)) {
+      return res.status(409).json({ message: "User with this email or username already exists" });
+    }
     res.status(500).json({ message: "Failed to update user" });
   }
 };

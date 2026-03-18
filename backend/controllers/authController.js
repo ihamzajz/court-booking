@@ -2,6 +2,7 @@ const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { emitRealtime } = require("../socket");
+const { isDuplicateEntryError } = require("../utils/dbErrors");
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -91,6 +92,9 @@ exports.registerUser = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
+    if (isDuplicateEntryError(error)) {
+      return res.status(409).json({ message: "User with this email or username already exists" });
+    }
     res.status(500).json({ message: "Server error" });
   }
 };

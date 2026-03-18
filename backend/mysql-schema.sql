@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   booking_date DATE NOT NULL,
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
+  players_json JSON DEFAULT NULL,
   booking_status ENUM('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED') NOT NULL DEFAULT 'PENDING',
   payment_status ENUM('UNPAID', 'PAID') NOT NULL DEFAULT 'UNPAID',
   admin_note TEXT DEFAULT NULL,

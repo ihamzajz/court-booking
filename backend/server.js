@@ -4,12 +4,34 @@ const cors = require("cors");
 const multer = require("multer");
 const http = require("http");
 const { Server } = require("socket.io");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const { initSocketServer } = require("./socket");
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.path.startsWith("/auth"),
+});
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.set("trust proxy", 1);
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+  })
+);
 
 app.use(
   cors({
@@ -19,6 +41,8 @@ app.use(
   })
 );
 app.use(express.json());
+app.use("/api", apiLimiter);
+app.use("/api/auth", authLimiter);
 
 const path = require("path");
 
