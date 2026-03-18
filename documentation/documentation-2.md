@@ -12,6 +12,7 @@ The app now includes:
 
 - BookFlow branding and splash/icon updates
 - secure auth with protected admin routes
+- secure forgot-password flow with 6-digit email OTP
 - realtime live updates using `Socket.IO`
 - fallback sync for reliability on reconnect/app resume
 - concurrency-safe court and event booking
@@ -39,8 +40,9 @@ court-booking/
 |- frontend/
 |- documentation/
 |  |- documentation-1.md
-|  `- documentation-2.md
-`- PROJECT_DOCUMENTATION.md
+|  |- documentation-2.md
+|  `- documentation-api.md
+`- ...
 ```
 
 ## Frontend Configuration
@@ -77,6 +79,10 @@ DB_USER=root
 DB_PASSWORD=
 DB_NAME=court_booking
 JWT_SECRET=your-strong-secret
+MAIL_FROM_NAME=BookFlow
+MAIL_FROM_EMAIL=yourgmail@gmail.com
+MAIL_USER=yourgmail@gmail.com
+MAIL_APP_PASSWORD=your-google-app-password
 ```
 
 For production:
@@ -124,6 +130,9 @@ Auth endpoints:
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `POST /api/auth/forgot-password/send-otp`
+- `POST /api/auth/forgot-password/verify-otp`
+- `POST /api/auth/forgot-password/reset`
 - `GET /api/auth/me`
 - `PUT /api/auth/change-password`
 
@@ -140,6 +149,9 @@ Improvements made:
 - password validation is stricter
 - duplicate username/email conflicts return proper `409`
 - admin-only routes are protected correctly
+- forgot-password uses hashed OTP values instead of storing raw codes
+- reset OTP expires automatically and enforces attempt limits
+- password reset email sending is ready for Gmail app-password setup
 
 ## Route Security Fixes
 
@@ -202,12 +214,13 @@ Main tables:
 - `event_bookings`
 - `faqs`
 - `news`
-- `slides`
+- `password_reset_otps`
 
 Note:
 
 - `players_json` is included in the schema for `bookings`
 - if an older database already has `players_json` as `LONGTEXT`, it still works with current code as long as valid JSON text is stored
+- `password_reset_otps` is also auto-created on backend startup, so fresh deployments stay aligned even if the schema SQL was not run manually
 
 ## Production Middleware
 
@@ -233,6 +246,8 @@ Backend:
 - `backend/socket.js`
 - `backend/utils/locking.js`
 - `backend/utils/dbErrors.js`
+- `backend/services/emailService.js`
+- `backend/services/authSchemaService.js`
 
 Frontend:
 
@@ -240,6 +255,7 @@ Frontend:
 - `frontend/src/hooks/useRealtimeSubscription.js`
 - `frontend/src/hooks/useLiveRefresh.js`
 - `frontend/src/utils/auth.js`
+- `frontend/app/forgot-password.jsx`
 
 ## Deployment Checklist
 
@@ -249,12 +265,14 @@ Before production deployment:
 2. Set backend `CORS_ORIGIN` to your production frontend domain.
 3. Set a strong production `JWT_SECRET`.
 4. Set correct production MySQL credentials.
-5. Confirm HTTPS for both frontend and backend.
-6. Restart backend after env/package changes.
-7. Rebuild the mobile app after splash/icon updates.
-8. Test realtime updates from admin to user devices.
-9. Test duplicate booking conflict handling.
-10. Test duplicate username/email conflict handling.
+5. Add Gmail mail credentials in backend `.env` for forgot-password OTP email.
+6. Confirm HTTPS for both frontend and backend.
+7. Restart backend after env/package changes.
+8. Rebuild the mobile app after splash/icon updates.
+9. Test realtime updates from admin to user devices.
+10. Test duplicate booking conflict handling.
+11. Test duplicate username/email conflict handling.
+12. Test forgot-password send, verify, and reset flow.
 
 ## Suggested Production Domains
 
@@ -276,6 +294,7 @@ Compared to documentation 1, this version reflects the current state of the proj
 - renamed to BookFlow
 - better frontend config
 - secure admin routes
+- forgot-password with email OTP
 - realtime socket updates
 - fallback sync strategy
 - production middleware

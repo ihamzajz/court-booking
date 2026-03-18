@@ -7,6 +7,7 @@ const { Server } = require("socket.io");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const { initSocketServer } = require("./socket");
+const { ensureAuthTables } = require("./services/authSchemaService");
 
 dotenv.config();
 
@@ -81,4 +82,14 @@ const PORT = process.env.PORT || 5000;
 
 initSocketServer(server, Server);
 
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const startServer = async () => {
+  try {
+    await ensureAuthTables();
+    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  } catch (error) {
+    console.error("Failed to initialize server", error);
+    process.exit(1);
+  }
+};
+
+startServer();

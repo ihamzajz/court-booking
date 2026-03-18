@@ -49,6 +49,9 @@ Use these APIs:
 - `GET /api/slides`
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `POST /api/auth/forgot-password/send-otp`
+- `POST /api/auth/forgot-password/verify-otp`
+- `POST /api/auth/forgot-password/reset`
 
 ### Logged-in User App
 
@@ -207,6 +210,72 @@ Body:
 ```json
 {
   "currentPassword": "oldpass",
+  "newPassword": "newpass123"
+}
+```
+
+### Send Forgot-Password OTP
+
+`POST /api/auth/forgot-password/send-otp`
+
+Use for:
+
+- request a password reset email with a 6-digit OTP
+
+Body:
+
+```json
+{
+  "email": "hamza@example.com"
+}
+```
+
+Notes:
+
+- returns a generic success message for security
+- active users receive a 6-digit code by email
+- Gmail sending must be configured in backend `.env`
+
+### Verify Forgot-Password OTP
+
+`POST /api/auth/forgot-password/verify-otp`
+
+Use for:
+
+- verify the emailed OTP before allowing password reset
+
+Body:
+
+```json
+{
+  "email": "hamza@example.com",
+  "otp": "123456"
+}
+```
+
+Returns:
+
+- `resetToken`
+
+Notes:
+
+- OTP expires automatically
+- OTP attempts are limited
+- backend stores only a hashed OTP value
+
+### Reset Password With Verified OTP
+
+`POST /api/auth/forgot-password/reset`
+
+Use for:
+
+- set a new password after OTP verification
+
+Body:
+
+```json
+{
+  "resetToken": "JWT_FROM_VERIFY_STEP",
   "newPassword": "newpass123"
 }
 ```
@@ -927,6 +996,7 @@ If you build a web app using these APIs, typical pages would be:
 - FAQs
 - Login
 - Register
+- Forgot password
 
 ### User
 

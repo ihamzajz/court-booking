@@ -116,6 +116,13 @@ export default function Login() {
             />
 
             <Pressable
+              onPress={() => router.push("/forgot-password")}
+              style={({ pressed }) => [styles.inlineAction, pressed && { opacity: 0.75 }]}
+            >
+              <Text style={styles.inlineActionText}>Forgot password?</Text>
+            </Pressable>
+
+            <Pressable
               onPress={canSubmit ? handleLogin : undefined}
               style={({ pressed }) => [
                 styles.primaryBtn,
@@ -268,6 +275,17 @@ const styles = StyleSheet.create({
   rightIcon: {
     width: 30,
     alignItems: "center",
+  },
+  inlineAction: {
+    alignSelf: "flex-end",
+    marginTop: -2,
+    marginBottom: 10,
+    paddingVertical: 4,
+  },
+  inlineActionText: {
+    color: "#1D4ED8",
+    fontFamily: "Poppins_700Bold",
+    fontSize: 12.5,
   },
   primaryBtn: {
     marginTop: 6,
