@@ -63,7 +63,7 @@ export default function Profile() {
       const data = await res.json().catch(() => null);
 
       if (!res.ok || !data) {
-        if (res.status === 401) {
+        if (res.status === 401 || res.status === 403) {
           await clearStoredUser();
           router.replace("/login");
           return;

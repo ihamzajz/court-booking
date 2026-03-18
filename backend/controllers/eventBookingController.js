@@ -2,6 +2,50 @@ const pool = require("../config/db");
 const { emitRealtime } = require("../socket");
 const { withNamedLock } = require("../utils/locking");
 
+const parseTimeToMinutes = (value) => {
+  const parts = String(value || "").split(":");
+
+  if (parts.length < 2) return null;
+
+  const hours = Number(parts[0]);
+  const minutes = Number(parts[1]);
+
+  if (
+    Number.isNaN(hours) ||
+    Number.isNaN(minutes) ||
+    hours < 0 ||
+    hours > 23 ||
+    minutes < 0 ||
+    minutes > 59
+  ) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+};
+
+const isPastBookingRequest = (bookingDate, startTime) => {
+  const startMinutes = parseTimeToMinutes(startTime);
+  if (startMinutes === null) return true;
+
+  const date = new Date(`${bookingDate}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return true;
+
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+
+  if (date < startOfToday) {
+    return true;
+  }
+
+  if (date.getTime() !== startOfToday.getTime()) {
+    return false;
+  }
+
+  return startMinutes <= now.getHours() * 60 + now.getMinutes();
+};
+
 const hasConflict = async (connection, eventId, bookingDate, startTime, endTime) => {
   const [rows] = await connection.query(
     `SELECT id FROM event_bookings
@@ -28,6 +72,25 @@ exports.createEventBooking = async (req, res) => {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
+  const startMinutes = parseTimeToMinutes(startTime);
+  const endMinutes = parseTimeToMinutes(endTime);
+
+  if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+    return res.status(400).json({ message: "Invalid booking time range" });
+  }
+
+  if (isPastBookingRequest(bookingDate, startTime)) {
+    return res.status(400).json({ message: "Past bookings are not allowed" });
+  }
+
+  if (String(req.user.can_book || "no").toLowerCase() !== "yes") {
+    return res.status(403).json({ message: "Booking is disabled for your account" });
+  }
+
+  if (String(req.user.fees_status || "paid").toLowerCase() === "defaulter") {
+    return res.status(403).json({ message: "Defaulter users cannot create bookings" });
+  }
+
   try {
     const booking = await withNamedLock(
       `booking:event:${eventId}:${bookingDate}`,
@@ -35,6 +98,17 @@ exports.createEventBooking = async (req, res) => {
         await connection.beginTransaction();
 
         try {
+          const [eventRows] = await connection.query(
+            "SELECT id FROM events WHERE id = ? LIMIT 1",
+            [eventId]
+          );
+
+          if (!eventRows.length) {
+            const error = new Error("Venue not found");
+            error.statusCode = 404;
+            throw error;
+          }
+
           const conflict = await hasConflict(connection, eventId, bookingDate, startTime, endTime);
           if (conflict) {
             const error = new Error("Time slot not available");
@@ -198,6 +272,7 @@ exports.getAllEventBookingsAdmin = async (req, res) => {
                  JOIN events e ON eb.event_id = e.id
                  WHERE 1=1`;
     const params = [];
+    const normalizedSearch = String(search || "").trim().toLowerCase();
 
     if (year) {
       if (month) {
@@ -224,19 +299,31 @@ exports.getAllEventBookingsAdmin = async (req, res) => {
       params.push(paymentStatus);
     }
 
-    query += ` ORDER BY eb.created_at DESC`;
-
-    let [bookings] = await pool.query(query, params);
-
-    if (search) {
-      const s = search.toLowerCase();
-      bookings = bookings.filter(
-        (b) =>
-          (b.user_name && b.user_name.toLowerCase().includes(s)) ||
-          (b.event_name && b.event_name.toLowerCase().includes(s))
-      );
+    if (normalizedSearch) {
+      query += ` AND (LOWER(u.name) LIKE ? OR LOWER(e.name) LIKE ?)`;
+      params.push(`%${normalizedSearch}%`, `%${normalizedSearch}%`);
     }
 
+    query += ` ORDER BY eb.created_at DESC`;
+
+    const page = Number.parseInt(req.query.page, 10);
+    const limit = Number.parseInt(req.query.limit, 10);
+    const shouldPaginate = Number.isInteger(page) && Number.isInteger(limit) && page > 0 && limit > 0;
+
+    if (shouldPaginate) {
+      const safeLimit = Math.min(limit, 100);
+      const offset = (page - 1) * safeLimit;
+      const paginatedQuery = `${query} LIMIT ? OFFSET ?`;
+      const [bookings] = await pool.query(paginatedQuery, [...params, safeLimit, offset]);
+
+      return res.json({
+        items: bookings,
+        page,
+        limit: safeLimit,
+      });
+    }
+
+    const [bookings] = await pool.query(query, params);
     res.json(bookings);
   } catch (err) {
     console.error(err);

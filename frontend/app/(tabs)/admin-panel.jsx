@@ -1,12 +1,12 @@
 import { View, Text, StyleSheet, Pressable, Alert, Animated } from "react-native";
 import { useEffect, useState, useRef, useCallback } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import AppScreen from "../../components/AppScreen";
+import { getStoredUser } from "../../src/utils/auth";
 
 const palette = {
   bg: "#F4F8FF",
@@ -79,13 +79,11 @@ export default function AdminPanel() {
 
   useEffect(() => {
     const checkAccess = async () => {
-      const storedUser = await AsyncStorage.getItem("user");
-      if (!storedUser) {
+      const parsedUser = await getStoredUser();
+      if (!parsedUser?.token) {
         router.replace("/login");
         return;
       }
-
-      const parsedUser = JSON.parse(storedUser);
       const isAdmin = parsedUser?.role === "admin" || parsedUser?.role === "superadmin";
 
       if (!isAdmin) {

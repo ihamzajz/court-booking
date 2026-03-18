@@ -21,3 +21,8 @@ export async function setStoredUser(user) {
 export async function clearStoredUser() {
   await AsyncStorage.removeItem(USER_STORAGE_KEY);
 }
+
+export async function getStoredToken() {
+  const user = await getStoredUser();
+  return user?.token || null;
+}

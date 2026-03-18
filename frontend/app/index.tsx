@@ -8,7 +8,7 @@ export default function Index() {
     const init = async () => {
       const user = await getStoredUser();
 
-      if (user) {
+      if (user?.token) {
         router.replace("/(tabs)/home"); // logged in
       } else {
         router.replace("/splash-screen" as never); // not logged in

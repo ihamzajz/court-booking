@@ -2,6 +2,20 @@ const pool = require("../config/db");
 
 const ensureAuthTables = async () => {
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS slides (
+      id INT NOT NULL AUTO_INCREMENT,
+      title VARCHAR(255) NOT NULL,
+      subtitle VARCHAR(255) DEFAULT NULL,
+      picture VARCHAR(255) NOT NULL,
+      sort_order INT NOT NULL DEFAULT 1,
+      is_active ENUM('yes', 'no') NOT NULL DEFAULT 'yes',
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id)
+    )
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS password_reset_otps (
       id INT NOT NULL AUTO_INCREMENT,
       user_id INT NOT NULL,

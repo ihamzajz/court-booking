@@ -1,16 +1,17 @@
 {
   "expo": {
     "name": "BookFlow",
-    "slug": "frontend",
+    "slug": "bookflow",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.PNG",
-    "scheme": "frontend",
+    "scheme": "bookflow",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
 
     "ios": {
       "supportsTablet": true
+      
     },
 
     "android": {

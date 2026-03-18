@@ -1,18 +1,22 @@
+const fs = require("fs");
 const multer = require("multer");
 const path = require("path");
 
+const uploadDir = path.join(__dirname, "..", "uploads", "courts");
+fs.mkdirSync(uploadDir, { recursive: true });
+
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/courts");
+  destination: (_req, _file, cb) => {
+    cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
+  filename: (_req, file, cb) => {
     const uniqueName =
       Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(null, uniqueName + path.extname(file.originalname));
   }
 });
 
-const fileFilter = (req, file, cb) => {
+const fileFilter = (_req, file, cb) => {
   if (file.mimetype.startsWith("image")) {
     cb(null, true);
   } else {

@@ -1,71 +1,73 @@
-# BookFlow Project Documentation 2
+# BookFlow Updated Documentation
 
-## Overview
+## 1. Project Overview
 
-BookFlow is a production-ready booking platform with:
+BookFlow is a booking platform with:
 
 - `backend/` = Node.js + Express + MySQL API
 - `frontend/` = React Native / Expo mobile app
-- `documentation/` = archived and updated project documentation
+- `documentation/` = project documents
 
-The app now includes:
+Current product areas:
 
-- BookFlow branding and splash/icon updates
-- secure auth with protected admin routes
-- secure forgot-password flow with 6-digit email OTP
-- realtime live updates using `Socket.IO`
-- fallback sync for reliability on reconnect/app resume
-- concurrency-safe court and event booking
-- database-backed uniqueness protection for users, courts, and events
-- production middleware such as `helmet` and rate limiting
+- login
+- register
+- forgot password with email OTP
+- court booking
+- event booking
+- booking history
+- profile and password change
+- admin panel
+- manage users
+- manage courts
+- manage events
+- manage FAQs
+- manage news
+- manage slides
+- realtime live updates
 
-## Current Branding
-
-Updated branding:
-
-- App name: `BookFlow`
-- App icon: `frontend/assets/images/icon.PNG`
-- Native splash image: `frontend/assets/images/splash-screen.PNG`
-- In-app splash route: `frontend/app/splash-screen.jsx`
-
-Main Expo config file:
-
-- `frontend/app.json`
-
-## High-Level Architecture
+## 2. Folder Structure
 
 ```text
 court-booking/
 |- backend/
 |- frontend/
-|- documentation/
-|  |- documentation-1.md
-|  |- documentation-2.md
-|  `- documentation-api.md
-`- ...
+`- documentation/
+   |- documentation-1.md
+   |- documentation-2.md
+   `- documentation-api.md
 ```
 
-## Frontend Configuration
+## 3. Branding
 
-The frontend API URL is now controlled from one place only:
+Branding is now:
+
+- app name: `BookFlow`
+- app icon: `frontend/assets/images/icon.PNG`
+- splash image: `frontend/assets/images/splash-screen.PNG`
+- Expo config: `frontend/app.json`
+
+## 4. Environment Configuration
+
+### Frontend
+
+Frontend uses one env file:
 
 - `frontend/.env`
 
-Variable:
+Important variable:
 
 ```env
 EXPO_PUBLIC_API_BASE_URL=http://your-backend-url
 ```
 
-Frontend config file:
+This is read by:
 
 - `frontend/src/config/api.js`
 
-This file reads the base URL from the env file and builds all API/image endpoints from it.
+### Backend
 
-## Backend Configuration
-
-Backend environment file:
+Backend uses one env file:
 
 - `backend/.env`
 
@@ -85,127 +87,335 @@ MAIL_USER=yourgmail@gmail.com
 MAIL_APP_PASSWORD=your-google-app-password
 ```
 
-For production:
+For production example:
 
 ```env
 CORS_ORIGIN=https://abc.com
 JWT_SECRET=use-a-long-random-secret
+MAIL_FROM_NAME=BookFlow
+MAIL_FROM_EMAIL=yourgmail@gmail.com
+MAIL_USER=yourgmail@gmail.com
+MAIL_APP_PASSWORD=your-google-app-password
 ```
 
-## Realtime Updates
+## 5. Login
 
-Realtime is now implemented with `Socket.IO`.
+Login flow:
 
-Backend files:
+- user enters username or email
+- backend validates password
+- backend only allows active users
+- backend returns sanitized user data plus JWT token
+- frontend stores session locally
+
+Main files:
+
+- `frontend/app/login.jsx`
+- `backend/controllers/authController.js`
+- `backend/routes/authRoutes.js`
+- `backend/middleware/authMiddleware.js`
+
+Security behavior:
+
+- protected routes now re-check the live user from database
+- inactive users are blocked immediately
+- demoted admins lose admin access immediately
+- old JWT role/status is no longer blindly trusted
+
+## 6. Register
+
+Register flow:
+
+- user creates a normal account
+- username and email must be unique
+- account is created as inactive by default
+- admin activates the account later
+
+Main files:
+
+- `frontend/app/register.jsx`
+- `backend/controllers/authController.js`
+
+Validation highlights:
+
+- username format check
+- email format check
+- minimum password length
+- duplicate username/email protection
+
+## 7. Forgot Password
+
+Forgot-password flow is now fully set up:
+
+1. user enters email
+2. backend sends 6-digit OTP by email
+3. user verifies OTP
+4. backend returns reset session token
+5. user sets new password
+
+Main files:
+
+- `frontend/app/forgot-password.jsx`
+- `backend/controllers/authController.js`
+- `backend/services/emailService.js`
+- `backend/routes/authRoutes.js`
+
+Security highlights:
+
+- OTP is stored hashed, not plain
+- OTP expires automatically
+- OTP has attempt limits
+- reset token is short-lived
+- Gmail app-password setup is ready in backend `.env`
+
+## 8. Profile and Change Password
+
+Profile area supports:
+
+- loading current user from `/api/auth/me`
+- live refresh of account status
+- change password while logged in
+- logout
+
+Main files:
+
+- `frontend/app/(tabs)/profile.tsx`
+- `backend/controllers/authController.js`
+
+## 9. Court Booking
+
+Court booking supports:
+
+- view courts
+- choose date
+- choose duration
+- choose players
+- create booking
+- realtime slot updates
+
+Main files:
+
+- `frontend/app/(tabs)/court.jsx`
+- `backend/controllers/bookingController.js`
+- `backend/routes/bookingRoutes.js`
+
+Server-side protections:
+
+- conflict-safe booking with MySQL named locks
+- transaction-based insert flow
+- server validates court exists
+- server blocks past bookings
+- server validates time range
+- server enforces max players
+- server blocks defaulter users
+- server blocks users with `can_book=no`
+
+## 10. Event Booking
+
+Event booking supports:
+
+- view venues/events
+- choose date
+- choose duration
+- create booking
+- realtime slot updates
+
+Main files:
+
+- `frontend/app/(tabs)/event.tsx`
+- `backend/controllers/eventBookingController.js`
+- `backend/routes/eventBookingRoutes.js`
+
+Server-side protections:
+
+- conflict-safe booking
+- event existence check
+- past booking block
+- invalid time-range block
+- `can_book` check
+- defaulter block
+
+## 11. Booking History
+
+History supports:
+
+- court booking history
+- event booking history
+- payment status view
+- booking status view
+- admin notes
+
+Main files:
+
+- `frontend/app/(tabs)/history.tsx`
+
+Improvements:
+
+- safer session restore
+- shared auth helper usage
+- realtime refresh on booking changes
+
+## 12. Admin Panel
+
+Admin panel is the main control area for:
+
+- manage courts
+- manage events
+- manage slides
+- manage users
+- manage FAQs
+- manage news
+- booking dashboards
+
+Main file:
+
+- `frontend/app/(tabs)/admin-panel.jsx`
+
+Only `admin` and `superadmin` can access it.
+
+## 13. Manage Users
+
+Admin user management supports:
+
+- create user
+- edit user
+- delete user
+- activate/deactivate user
+- change role
+- set `can_book`
+- set `fees_status`
+
+Main files:
+
+- `frontend/app/(tabs)/manage-users.jsx`
+- `backend/controllers/userController.js`
+- `backend/routes/userRoutes.js`
+
+Important notes:
+
+- duplicate username/email is blocked
+- user creation has stronger validation now
+- status and role changes take effect immediately because protected routes re-check DB
+
+## 14. Manage Courts
+
+Supports:
+
+- create court
+- update court
+- delete court
+- upload court image
+
+Main files:
+
+- `frontend/app/(tabs)/manage-court.jsx`
+- `backend/controllers/courtController.js`
+- `backend/routes/courtRoutes.js`
+- `backend/middleware/upload.js`
+
+Improvement:
+
+- upload directory is now created automatically for safer deployment
+
+## 15. Manage Events
+
+Supports:
+
+- create venue/event
+- update venue/event
+- delete venue/event
+- upload event image
+
+Main files:
+
+- `frontend/app/(tabs)/manage-event.jsx`
+- `backend/controllers/eventController.js`
+- `backend/routes/eventRoutes.js`
+
+## 16. Manage FAQs
+
+Supports:
+
+- create FAQ
+- update FAQ
+- delete FAQ
+- reorder FAQs
+- active/inactive status
+
+Main files:
+
+- `frontend/app/(tabs)/manage-faqs.jsx`
+- `backend/controllers/faqController.js`
+- `backend/routes/faqRoutes.js`
+
+## 17. Manage News
+
+Supports:
+
+- create news
+- update news
+- delete news
+- reorder news
+- upload image
+- active/inactive status
+
+Main files:
+
+- `frontend/app/(tabs)/manage-news.jsx`
+- `backend/controllers/newsController.js`
+- `backend/routes/newsRoutes.js`
+
+## 18. Manage Slides
+
+Supports:
+
+- create slides
+- update slides
+- delete slides
+- reorder slides
+- active/inactive state
+
+Main files:
+
+- `frontend/app/(tabs)/manage-slides.jsx`
+- `backend/controllers/slideController.js`
+- `backend/routes/slideRoutes.js`
+
+## 19. Realtime Updates
+
+Realtime is implemented with `Socket.IO`.
+
+Main files:
 
 - `backend/server.js`
 - `backend/socket.js`
-
-Frontend files:
-
 - `frontend/src/lib/realtime.js`
 - `frontend/src/hooks/useRealtimeSubscription.js`
+- `frontend/src/hooks/useLiveRefresh.js`
 
-Live updates currently cover:
+Live update areas:
 
 - courts
 - events
+- users
 - news
 - slides
 - FAQs
-- users
-- court bookings
+- bookings
 - event bookings
 
-Professional reliability pattern:
+Production approach used:
 
-- `Socket.IO` is the primary realtime layer
-- `useLiveRefresh` remains as a light fallback for reconnect/resume recovery
+- realtime via Socket.IO
+- fallback refresh on focus/reconnect/app resume
 
-This is intentional and closer to how production apps are usually built.
+## 20. Database
 
-## Authentication and Authorization
-
-Auth endpoints:
-
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/forgot-password/send-otp`
-- `POST /api/auth/forgot-password/verify-otp`
-- `POST /api/auth/forgot-password/reset`
-- `GET /api/auth/me`
-- `PUT /api/auth/change-password`
-
-Important backend files:
-
-- `backend/controllers/authController.js`
-- `backend/middleware/authMiddleware.js`
-- `backend/routes/authRoutes.js`
-
-Improvements made:
-
-- login returns sanitized user payload
-- profile can refresh from `/api/auth/me`
-- password validation is stricter
-- duplicate username/email conflicts return proper `409`
-- admin-only routes are protected correctly
-- forgot-password uses hashed OTP values instead of storing raw codes
-- reset OTP expires automatically and enforces attempt limits
-- password reset email sending is ready for Gmail app-password setup
-
-## Route Security Fixes
-
-These admin mutation routes are now protected:
-
-- `backend/routes/courtRoutes.js`
-- `backend/routes/eventRoutes.js`
-- `backend/routes/slideRoutes.js`
-
-This prevents public users from creating/updating/deleting core records directly.
-
-## Concurrency Protection
-
-### Court and Event Booking
-
-Race conditions were fixed for simultaneous bookings.
-
-Backend files:
-
-- `backend/controllers/bookingController.js`
-- `backend/controllers/eventBookingController.js`
-- `backend/utils/locking.js`
-
-How it works now:
-
-- request acquires a MySQL named lock per resource/date
-- conflict check runs inside the lock
-- insert happens inside a transaction
-- only one overlapping booking request can succeed
-
-Result:
-
-- if 2 users book the same court/event for overlapping time at the same moment, both will not be saved
-- one request succeeds, the other gets a conflict response
-
-### Duplicate User Creation
-
-Duplicate admin/user creation is protected by:
-
-- database unique indexes on `users.username`
-- database unique indexes on `users.email`
-- graceful duplicate error handling in controllers
-
-Result:
-
-- if 2 admins create the same username/email at the same time, both will not be created
-
-## Database Notes
-
-Schema file:
+Main schema file:
 
 - `backend/mysql-schema.sql`
 
-Main tables:
+Important tables:
 
 - `users`
 - `courts`
@@ -214,89 +424,70 @@ Main tables:
 - `event_bookings`
 - `faqs`
 - `news`
+- `slides`
 - `password_reset_otps`
 
-Note:
+Important notes:
 
-- `players_json` is included in the schema for `bookings`
-- if an older database already has `players_json` as `LONGTEXT`, it still works with current code as long as valid JSON text is stored
-- `password_reset_otps` is also auto-created on backend startup, so fresh deployments stay aligned even if the schema SQL was not run manually
+- `players_json` is used for court booking players
+- `password_reset_otps` is auto-created on startup
+- `slides` is also auto-created on startup
+- hardcoded default admin seed was removed
 
-## Production Middleware
+## 21. Security and Production Hardening
 
-Production hardening in backend:
+Current production protections:
 
 - `helmet`
 - `express-rate-limit`
+- admin route protection
+- duplicate-key protection
+- secure password hashing
+- JWT auth
+- live DB user re-check on protected routes
+- concurrency-safe booking locks
+- OTP hashing and expiry
 
-Applied in:
+Main files:
 
 - `backend/server.js`
-
-Current behavior:
-
-- general API rate limiting
-- stricter auth endpoint rate limiting
-- secure headers enabled
-
-## Important New Files
-
-Backend:
-
-- `backend/socket.js`
+- `backend/middleware/authMiddleware.js`
 - `backend/utils/locking.js`
 - `backend/utils/dbErrors.js`
-- `backend/services/emailService.js`
-- `backend/services/authSchemaService.js`
 
-Frontend:
+## 22. Deployment Notes
 
-- `frontend/src/lib/realtime.js`
-- `frontend/src/hooks/useRealtimeSubscription.js`
-- `frontend/src/hooks/useLiveRefresh.js`
-- `frontend/src/utils/auth.js`
-- `frontend/app/forgot-password.jsx`
+Recommended domain setup:
 
-## Deployment Checklist
+- frontend: `https://abc.com`
+- backend: `https://api.abc.com`
 
-Before production deployment:
+Before deployment:
 
-1. Set frontend `EXPO_PUBLIC_API_BASE_URL` to your production API domain.
-2. Set backend `CORS_ORIGIN` to your production frontend domain.
-3. Set a strong production `JWT_SECRET`.
-4. Set correct production MySQL credentials.
-5. Add Gmail mail credentials in backend `.env` for forgot-password OTP email.
-6. Confirm HTTPS for both frontend and backend.
-7. Restart backend after env/package changes.
-8. Rebuild the mobile app after splash/icon updates.
-9. Test realtime updates from admin to user devices.
-10. Test duplicate booking conflict handling.
-11. Test duplicate username/email conflict handling.
-12. Test forgot-password send, verify, and reset flow.
+1. set frontend `EXPO_PUBLIC_API_BASE_URL`
+2. set backend `CORS_ORIGIN`
+3. set strong `JWT_SECRET`
+4. set production DB credentials
+5. add Gmail email credentials
+6. restart backend after env changes
+7. rebuild app after icon/splash changes
+8. test login, register, forgot password, court booking, event booking, admin actions
 
-## Suggested Production Domains
+## 23. Verification Status
 
-- Frontend: `https://abc.com`
-- Backend: `https://api.abc.com`
-
-## Verification Status
-
-The recent changes were checked with:
+Recent checks passed:
 
 - `expo lint`
 - `npx tsc --noEmit`
 - backend `node --check`
 
-## Summary
+## 24. Current Project Status
 
-Compared to documentation 1, this version reflects the current state of the project:
+The project is now in a much stronger production-ready state with:
 
-- renamed to BookFlow
-- better frontend config
-- secure admin routes
-- forgot-password with email OTP
-- realtime socket updates
-- fallback sync strategy
-- production middleware
-- concurrency-safe booking logic
-- cleaner deployment readiness
+- hardened auth
+- realtime updates
+- safer bookings
+- OTP-based password reset
+- stronger deployment consistency
+- cleaner frontend session handling

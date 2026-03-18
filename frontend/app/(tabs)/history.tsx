@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useFocusEffect, router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -9,6 +8,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import AppScreen from "../../components/AppScreen";
 import { BOOKINGS_API, EVENT_BOOKINGS_API } from "../../src/config/api";
 import useRealtimeSubscription from "../../src/hooks/useRealtimeSubscription";
+import { clearStoredUser, getStoredToken } from "../../src/utils/auth";
 
 const palette = {
   bg: "#F4F8FF",
@@ -188,11 +188,7 @@ export default function History() {
   const [refreshing, setRefreshing] = useState(false);
 
   const loadToken = useCallback(async () => {
-    const stored = await AsyncStorage.getItem("user");
-    if (!stored) return null;
-
-    const user = JSON.parse(stored);
-    return user?.token || null;
+    return getStoredToken();
   }, []);
 
   const loadHistory = useCallback(
@@ -203,6 +199,7 @@ export default function History() {
         setCourtHistory([]);
         setEventHistory([]);
         setLoading(false);
+        router.replace("/login");
         return;
       }
 
@@ -222,6 +219,12 @@ export default function History() {
         ]);
 
         const [courtData, eventData] = await Promise.all([courtRes.json(), eventRes.json()]);
+
+        if (courtRes.status === 401 || courtRes.status === 403 || eventRes.status === 401 || eventRes.status === 403) {
+          await clearStoredUser();
+          router.replace("/login");
+          return;
+        }
 
         setCourtHistory(courtRes.ok && Array.isArray(courtData) ? courtData : []);
         setEventHistory(eventRes.ok && Array.isArray(eventData) ? eventData : []);

@@ -42,8 +42,37 @@ exports.createUser = async (req, res) => {
   }
 
   try {
+    const normalizedName = String(name).trim();
     const normalizedUsername = String(username).trim().toLowerCase();
     const normalizedEmail = String(email).trim().toLowerCase();
+    const normalizedRole = ["user", "admin", "superadmin"].includes(String(role || "user"))
+      ? String(role || "user")
+      : "user";
+    const normalizedStatus = ["active", "inactive"].includes(String(status || "inactive"))
+      ? String(status || "inactive")
+      : "inactive";
+    const normalizedCanBook = ["yes", "no"].includes(String(can_book || "no"))
+      ? String(can_book || "no")
+      : "no";
+    const normalizedFeesStatus = ["paid", "defaulter"].includes(String(fees_status || "paid"))
+      ? String(fees_status || "paid")
+      : "paid";
+
+    if (!normalizedName) {
+      return res.status(400).json({ message: "Name is required" });
+    }
+
+    if (!/^[a-z0-9._-]{3,}$/i.test(normalizedUsername)) {
+      return res.status(400).json({ message: "Username must be at least 3 characters and use letters/numbers" });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return res.status(400).json({ message: "Valid email is required" });
+    }
+
+    if (String(password).length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
 
     const [existing] = await pool.query(
       "SELECT id FROM users WHERE email = ? OR username = ?",
@@ -61,15 +90,15 @@ exports.createUser = async (req, res) => {
       `INSERT INTO users (name, username, email, cm_no, password, role, status, can_book, fees_status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        String(name).trim(),
+        normalizedName,
         normalizedUsername,
         normalizedEmail,
         normalizedCmNo,
         hashedPassword,
-        role || "user",
-        status || "inactive",
-        can_book || "no",
-        fees_status || "paid",
+        normalizedRole,
+        normalizedStatus,
+        normalizedCanBook,
+        normalizedFeesStatus,
       ]
     );
 

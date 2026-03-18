@@ -17,11 +17,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
 
 import TopHeaderBox from "../../components/TopHeaderBox";
 import { FAQS_API } from "../../src/config/api";
+import { getStoredToken } from "../../src/utils/auth";
 
 const CONTROL_HEIGHT = 48;
 const palette = {
@@ -51,9 +51,7 @@ export default function ManageFaqs() {
   const [sortOrder, setSortOrder] = useState("");
 
   useEffect(() => {
-    AsyncStorage.getItem("user").then((stored) => {
-      if (stored) setToken(JSON.parse(stored).token);
-    });
+    getStoredToken().then(setToken);
   }, []);
 
   const filteredFaqs = useMemo(() => {

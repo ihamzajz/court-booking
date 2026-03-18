@@ -104,6 +104,18 @@ CREATE TABLE IF NOT EXISTS news (
   PRIMARY KEY (id)
 );
 
+CREATE TABLE IF NOT EXISTS slides (
+  id INT NOT NULL AUTO_INCREMENT,
+  title VARCHAR(255) NOT NULL,
+  subtitle VARCHAR(255) DEFAULT NULL,
+  picture VARCHAR(255) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 1,
+  is_active ENUM('yes', 'no') NOT NULL DEFAULT 'yes',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+);
+
 CREATE TABLE IF NOT EXISTS password_reset_otps (
   id INT NOT NULL AUTO_INCREMENT,
   user_id INT NOT NULL,
@@ -123,23 +135,6 @@ CREATE TABLE IF NOT EXISTS password_reset_otps (
   CONSTRAINT fk_password_reset_otps_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-INSERT INTO users (name, username, email, cm_no, password, role, status, can_book, fees_status)
-VALUES (
-  'admin',
-  'admin',
-  'admin@gmail.com',
-  NULL,
-  '$2b$10$NKOEgCDAAduBI6f.uUhl8uE6keKhsE.X9b7hnSLDi2SO.vNt7CFvW',
-  'admin',
-  'active',
-  'yes',
-  'paid'
-)
-ON DUPLICATE KEY UPDATE
-  name = VALUES(name),
-  cm_no = VALUES(cm_no),
-  password = VALUES(password),
-  role = VALUES(role),
-  status = VALUES(status),
-  can_book = VALUES(can_book),
-  fees_status = VALUES(fees_status);
+-- Create your first admin manually after deployment using:
+-- 1. the protected admin user API from an existing superadmin session, or
+-- 2. a one-time SQL insert with a freshly generated bcrypt password hash.

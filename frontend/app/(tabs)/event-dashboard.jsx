@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import { router } from "expo-router";
@@ -20,6 +19,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import AppScreen from "../../components/AppScreen";
 import TopHeaderBox from "../../components/TopHeaderBox";
 import { EVENT_BOOKINGS_API } from "../../src/config/api";
+import { getStoredToken } from "../../src/utils/auth";
 
 const MONTHS = [
   "January",
@@ -71,9 +71,7 @@ export default function EventDashboard() {
   const [editPaymentStatus, setEditPaymentStatus] = useState("");
 
   useEffect(() => {
-    AsyncStorage.getItem("user").then((data) => {
-      if (data) setToken(JSON.parse(data).token);
-    });
+    getStoredToken().then(setToken);
   }, []);
 
   const fetchBookings = async () => {

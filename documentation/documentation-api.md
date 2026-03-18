@@ -1,18 +1,18 @@
 # BookFlow API Documentation
 
-## Overview
+## 1. API Overview
 
-This file explains how to use the BookFlow backend APIs when building a web app, admin panel, or any other frontend.
+This file is only for backend API usage.
 
 Base URL examples:
 
-- Local: `http://localhost:5000`
-- Production: `https://api.abc.com`
+- local: `http://localhost:5000`
+- production: `https://api.abc.com`
 
-All endpoints below assume:
+API base:
 
 ```text
-{BASE_URL}/api/...
+{BASE_URL}/api
 ```
 
 Example:
@@ -21,7 +21,7 @@ Example:
 http://localhost:5000/api/auth/login
 ```
 
-## Authentication Basics
+## 2. Authentication Rules
 
 Protected endpoints require:
 
@@ -29,90 +29,27 @@ Protected endpoints require:
 Authorization: Bearer YOUR_JWT_TOKEN
 ```
 
-How auth works:
+How to use:
 
-1. Call login API
-2. Save returned `token`
-3. Send that token in `Authorization` header for protected APIs
+1. call login
+2. save returned `token`
+3. send that token in the `Authorization` header
 
-## Common Web App Flows
+Notes:
 
-### Public Website / Public App
+- protected routes re-check the live user in database
+- inactive users are blocked
+- admin permissions are checked from live DB state
 
-Use these APIs:
+## 3. Auth APIs
 
-- `GET /api/courts`
-- `GET /api/events`
-- `GET /api/faqs`
-- `GET /api/news`
-- `GET /api/news/:id`
-- `GET /api/slides`
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/forgot-password/send-otp`
-- `POST /api/auth/forgot-password/verify-otp`
-- `POST /api/auth/forgot-password/reset`
-
-### Logged-in User App
-
-Use these APIs:
-
-- `GET /api/auth/me`
-- `PUT /api/auth/change-password`
-- `GET /api/users/booking-options`
-- `POST /api/bookings`
-- `GET /api/bookings`
-- `GET /api/bookings/my`
-- `DELETE /api/bookings/:id`
-- `POST /api/event-bookings`
-- `GET /api/event-bookings`
-- `GET /api/event-bookings/my`
-
-### Admin Panel
-
-Use these APIs:
-
-- `GET /api/users`
-- `POST /api/users`
-- `PUT /api/users/:id`
-- `DELETE /api/users/:id`
-- `POST /api/courts`
-- `PUT /api/courts/:id`
-- `DELETE /api/courts/:id`
-- `POST /api/events`
-- `PUT /api/events/:id`
-- `DELETE /api/events/:id`
-- `GET /api/bookings/admin/all`
-- `PUT /api/bookings/admin/:id/status`
-- `PUT /api/bookings/admin/:id/payment`
-- `GET /api/event-bookings/admin/all`
-- `PUT /api/event-bookings/admin/:id/status`
-- `PUT /api/event-bookings/admin/:id/payment`
-- `GET /api/faqs/admin/all`
-- `POST /api/faqs`
-- `PUT /api/faqs/:id`
-- `DELETE /api/faqs/:id`
-- `PUT /api/faqs/reorder`
-- `GET /api/news/admin/all`
-- `POST /api/news`
-- `PUT /api/news/:id`
-- `DELETE /api/news/:id`
-- `PUT /api/news/reorder`
-- `GET /api/slides/admin/all`
-- `POST /api/slides`
-- `PUT /api/slides/:id`
-- `DELETE /api/slides/:id`
-- `PUT /api/slides/reorder`
-
-## Auth APIs
-
-### Register User
+### Register
 
 `POST /api/auth/register`
 
 Use for:
 
-- create normal user account
+- creating a normal user account
 
 Body:
 
@@ -126,19 +63,23 @@ Body:
 }
 ```
 
+Returns:
+
+- registration success message
+
 Notes:
 
-- creates normal user only
 - new user is usually inactive until admin approval
-- duplicate username/email returns conflict
+- duplicate email/username is blocked
 
-### Login User
+### Login
 
 `POST /api/auth/login`
 
 Use for:
 
-- login from web app or mobile app
+- username login
+- email login
 
 Body:
 
@@ -160,35 +101,33 @@ or:
 
 Returns:
 
-- user profile fields
-- JWT token
+```json
+{
+  "id": 1,
+  "name": "Muhammad Hamza",
+  "username": "muhammad.hamza",
+  "email": "hamza@example.com",
+  "cm_no": "12345",
+  "role": "user",
+  "status": "active",
+  "can_book": "yes",
+  "fees_status": "paid",
+  "token": "JWT_TOKEN"
+}
+```
 
-Important returned fields:
-
-- `id`
-- `name`
-- `username`
-- `email`
-- `role`
-- `can_book`
-- `fees_status`
-- `token`
-
-### Get Current Logged-in User
+### Get Current User
 
 `GET /api/auth/me`
 
 Use for:
 
-- restore session
-- refresh user info after login
-- check role and booking permissions
+- restoring session
+- getting fresh role/status data
 
-Headers:
+Auth:
 
-```http
-Authorization: Bearer YOUR_TOKEN
-```
+- logged-in user
 
 ### Change Password
 
@@ -196,14 +135,11 @@ Authorization: Bearer YOUR_TOKEN
 
 Use for:
 
-- change logged-in user password
+- changing password while logged in
 
-Headers:
+Auth:
 
-```http
-Authorization: Bearer YOUR_TOKEN
-Content-Type: application/json
-```
+- logged-in user
 
 Body:
 
@@ -220,7 +156,7 @@ Body:
 
 Use for:
 
-- request a password reset email with a 6-digit OTP
+- sending a 6-digit password reset OTP to user email
 
 Body:
 
@@ -232,9 +168,8 @@ Body:
 
 Notes:
 
-- returns a generic success message for security
-- active users receive a 6-digit code by email
-- Gmail sending must be configured in backend `.env`
+- response is generic for security
+- Gmail config must exist in backend `.env`
 
 ### Verify Forgot-Password OTP
 
@@ -242,7 +177,7 @@ Notes:
 
 Use for:
 
-- verify the emailed OTP before allowing password reset
+- verifying OTP before reset
 
 Body:
 
@@ -255,32 +190,31 @@ Body:
 
 Returns:
 
-- `resetToken`
+```json
+{
+  "message": "OTP verified successfully",
+  "resetToken": "JWT_RESET_TOKEN"
+}
+```
 
-Notes:
-
-- OTP expires automatically
-- OTP attempts are limited
-- backend stores only a hashed OTP value
-
-### Reset Password With Verified OTP
+### Reset Password
 
 `POST /api/auth/forgot-password/reset`
 
 Use for:
 
-- set a new password after OTP verification
+- setting a new password after OTP verification
 
 Body:
 
 ```json
 {
-  "resetToken": "JWT_FROM_VERIFY_STEP",
+  "resetToken": "JWT_RESET_TOKEN",
   "newPassword": "newpass123"
 }
 ```
 
-## User APIs
+## 4. User APIs
 
 ### Get Booking Player Options
 
@@ -288,7 +222,7 @@ Body:
 
 Use for:
 
-- load selectable players in court booking flow
+- player selector in court booking
 
 Auth:
 
@@ -300,11 +234,11 @@ Auth:
 
 Use for:
 
-- admin user management table
+- admin users list
 
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
 ### Create User
 
@@ -312,11 +246,11 @@ Auth:
 
 Use for:
 
-- admin creates a new user/admin manually
+- admin creates user/admin manually
 
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
 Body example:
 
@@ -340,15 +274,15 @@ Body example:
 
 Use for:
 
-- admin edit user data
-- activate/deactivate users
-- change role
-- allow/disallow booking
+- update role
+- update status
+- update booking permission
 - update fees status
+- update password
 
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
 ### Delete User
 
@@ -356,13 +290,13 @@ Auth:
 
 Use for:
 
-- admin removes a user
+- deleting user
 
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
-## Court APIs
+## 5. Court APIs
 
 ### Get All Courts
 
@@ -370,17 +304,16 @@ Auth:
 
 Use for:
 
-- public court listing
-- booking screen list
+- public court list
+- booking court list
 
-### Get Single Court
+### Get Court By ID
 
 `GET /api/courts/:id`
 
 Use for:
 
-- court detail page
-- edit form prefill if needed
+- court detail
 
 ### Create Court
 
@@ -388,11 +321,11 @@ Use for:
 
 Use for:
 
-- admin adds new court
+- admin creates court
 
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
 Content type:
 
@@ -401,19 +334,15 @@ Content type:
 Fields:
 
 - `name`
-- `picture` (file, optional depending on frontend flow)
+- `picture`
 
 ### Update Court
 
 `PUT /api/courts/:id`
 
-Use for:
-
-- admin edits court
-
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
 Content type:
 
@@ -423,15 +352,11 @@ Content type:
 
 `DELETE /api/courts/:id`
 
-Use for:
-
-- admin deletes court
-
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
-## Event APIs
+## 6. Event APIs
 
 ### Get All Events
 
@@ -439,29 +364,20 @@ Auth:
 
 Use for:
 
-- public event venue listing
+- public venue list
 - event booking list
 
-### Get Single Event
+### Get Event By ID
 
 `GET /api/events/:id`
-
-Use for:
-
-- event detail page
-- edit form prefill
 
 ### Create Event
 
 `POST /api/events`
 
-Use for:
-
-- admin adds venue/event place
-
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
 Content type:
 
@@ -476,27 +392,19 @@ Fields:
 
 `PUT /api/events/:id`
 
-Use for:
-
-- admin edits venue/event
-
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
 ### Delete Event
 
 `DELETE /api/events/:id`
 
-Use for:
-
-- admin deletes venue/event
-
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
-## Court Booking APIs
+## 7. Court Booking APIs
 
 ### Create Court Booking
 
@@ -522,11 +430,15 @@ Body:
 }
 ```
 
-Notes:
+Important behavior:
 
-- backend automatically includes current user in the booking
-- duplicate overlapping booking is blocked
-- if two users try same slot at same time, only one succeeds
+- court must exist
+- past booking is blocked
+- invalid time range is blocked
+- overlapping booking is blocked
+- user with `can_book=no` is blocked
+- defaulter user is blocked
+- only one request wins in same-slot race condition
 
 ### Get Court Bookings By Date
 
@@ -535,7 +447,6 @@ Notes:
 Use for:
 
 - slot availability screen
-- disable already booked time slots
 
 Auth:
 
@@ -547,8 +458,7 @@ Auth:
 
 Use for:
 
-- user history page
-- dashboard of own court bookings
+- history page
 
 Auth:
 
@@ -560,7 +470,7 @@ Auth:
 
 Use for:
 
-- user cancels own booking
+- cancel own booking
 
 Auth:
 
@@ -573,13 +483,12 @@ Auth:
 Use for:
 
 - admin booking dashboard
-- filters and reporting
 
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
-Optional query params:
+Query params:
 
 - `year`
 - `month`
@@ -588,26 +497,16 @@ Optional query params:
 - `search`
 - `bookingStatus`
 - `paymentStatus`
-
-Example:
-
-```text
-/api/bookings/admin/all?year=2026&month=3&bookingStatus=PENDING
-```
+- `page`
+- `limit`
 
 ### Admin Update Court Booking Status
 
 `PUT /api/bookings/admin/:id/status`
 
-Use for:
-
-- approve booking
-- reject booking
-- add admin note
-
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
 Body:
 
@@ -622,13 +521,9 @@ Body:
 
 `PUT /api/bookings/admin/:id/payment`
 
-Use for:
-
-- mark booking as paid/unpaid
-
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
 Body:
 
@@ -638,7 +533,7 @@ Body:
 }
 ```
 
-## Event Booking APIs
+## 8. Event Booking APIs
 
 ### Create Event Booking
 
@@ -663,13 +558,18 @@ Body:
 }
 ```
 
+Important behavior:
+
+- venue must exist
+- past booking is blocked
+- invalid time range is blocked
+- overlap is blocked
+- `can_book=no` is blocked
+- defaulter user is blocked
+
 ### Get Event Bookings By Date
 
 `GET /api/event-bookings?eventId=1&date=2026-03-18`
-
-Use for:
-
-- event slot availability
 
 Auth:
 
@@ -679,10 +579,6 @@ Auth:
 
 `GET /api/event-bookings/my`
 
-Use for:
-
-- user event history
-
 Auth:
 
 - logged-in user
@@ -691,15 +587,11 @@ Auth:
 
 `GET /api/event-bookings/admin/all`
 
-Use for:
-
-- admin event booking dashboard
-
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
-Optional query params:
+Query params:
 
 - `year`
 - `month`
@@ -708,6 +600,8 @@ Optional query params:
 - `search`
 - `bookingStatus`
 - `paymentStatus`
+- `page`
+- `limit`
 
 ### Admin Update Event Booking Status
 
@@ -734,31 +628,27 @@ Body:
 }
 ```
 
-## FAQ APIs
+## 9. FAQ APIs
 
 ### Get Public FAQs
 
 `GET /api/faqs`
 
-Use for:
-
-- public FAQ page
-
 ### Get All FAQs For Admin
 
 `GET /api/faqs/admin/all`
 
-Use for:
-
-- admin FAQ table
-
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
 ### Create FAQ
 
 `POST /api/faqs`
+
+Auth:
+
+- admin or superadmin
 
 Body:
 
@@ -774,10 +664,6 @@ Body:
 ### Update FAQ
 
 `PUT /api/faqs/:id`
-
-Use for:
-
-- edit FAQ text/status/order
 
 ### Delete FAQ
 
@@ -795,35 +681,23 @@ Body:
 }
 ```
 
-## News APIs
+## 10. News APIs
 
-### Get Public News List
+### Get Public News
 
 `GET /api/news`
-
-Use for:
-
-- public news page
 
 ### Get News Detail
 
 `GET /api/news/:id`
 
-Use for:
-
-- news detail page
-
 ### Get All News For Admin
 
 `GET /api/news/admin/all`
 
-Use for:
-
-- admin news management table
-
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
 ### Create News
 
@@ -831,7 +705,7 @@ Auth:
 
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
 Content type:
 
@@ -843,23 +717,11 @@ Fields:
 - `content`
 - `status`
 - `sortOrder`
-- `picture` (required)
+- `picture`
 
 ### Update News
 
 `PUT /api/news/:id`
-
-Use for:
-
-- edit news
-
-Auth:
-
-- admin or superadmin only
-
-Content type:
-
-- `multipart/form-data`
 
 ### Delete News
 
@@ -877,27 +739,19 @@ Body:
 }
 ```
 
-## Slide APIs
+## 11. Slide APIs
 
 ### Get Public Slides
 
 `GET /api/slides`
 
-Use for:
-
-- homepage slider
-
 ### Get All Slides For Admin
 
 `GET /api/slides/admin/all`
 
-Use for:
-
-- admin slide management
-
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
 ### Create Slide
 
@@ -905,7 +759,7 @@ Auth:
 
 Auth:
 
-- admin or superadmin only
+- admin or superadmin
 
 Content type:
 
@@ -917,7 +771,7 @@ Fields:
 - `subtitle`
 - `sortOrder`
 - `isActive`
-- `picture` (required)
+- `picture`
 
 ### Update Slide
 
@@ -939,26 +793,26 @@ Body:
 }
 ```
 
-## Realtime Events For Web App
+## 12. Realtime Events
 
-If your web app also wants live updates, use Socket.IO and listen for:
+If your web app or another frontend wants live updates, listen for:
 
 - `courts:updated`
 - `events:updated`
+- `users:updated`
+- `faqs:updated`
 - `news:updated`
 - `slides:updated`
-- `faqs:updated`
-- `users:updated`
 - `bookings:updated`
 - `event-bookings:updated`
 
-Recommended web app behavior:
+Recommended frontend behavior:
 
-- on event receive, refetch the affected resource
-- do not trust local UI only
-- backend remains source of truth
+- receive event
+- refetch affected resource
+- treat backend as source of truth
 
-## Upload and Image URLs
+## 13. Upload Paths
 
 Uploads are served from:
 
@@ -973,64 +827,45 @@ Examples:
 - slides: `/uploads/slides/...`
 - news: `/uploads/news/...`
 
-## Common Response Errors
+## 14. Error Codes
 
-Typical errors:
+Common API responses:
 
-- `400` = bad request / validation error
-- `401` = missing or invalid token
-- `403` = not enough permission
+- `400` = validation or bad request
+- `401` = missing/invalid token
+- `403` = blocked by permissions or account state
 - `404` = record not found
 - `409` = duplicate or booking conflict
 - `500` = server error
 
-## Recommended Frontend Structure For Web App
+## 15. Suggested Web App Mapping
 
-If you build a web app using these APIs, typical pages would be:
+### Public pages
 
-### Public
-
-- Home
-- News list
-- News detail
+- home
+- login
+- register
+- forgot password
 - FAQs
-- Login
-- Register
-- Forgot password
+- news list
+- news detail
 
-### User
+### User pages
 
-- Profile
-- Change password
-- Court booking
-- Event booking
-- Booking history
+- profile
+- change password
+- court booking
+- event booking
+- booking history
 
-### Admin
+### Admin pages
 
-- Dashboard
-- Manage users
-- Manage courts
-- Manage events
-- Manage slides
-- Manage FAQs
-- Manage news
-- Manage court bookings
-- Manage event bookings
-
-## Final Notes
-
-This API is already suitable for:
-
-- React web app
-- Next.js app
-- PHP website frontend
-- admin dashboard
-- mobile app
-
-For a web app, the most important implementation rule is:
-
-- use login token properly
-- protect admin routes in frontend UI
-- always refetch after important actions
-- listen to realtime socket events if you want live admin/user sync
+- dashboard
+- manage users
+- manage courts
+- manage events
+- manage FAQs
+- manage news
+- manage slides
+- manage court bookings
+- manage event bookings

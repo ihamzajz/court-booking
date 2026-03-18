@@ -4,9 +4,9 @@ import { router, type Href } from "expo-router";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import AppScreen from "../../components/AppScreen";
+import { getStoredUser } from "../../src/utils/auth";
 
 type MaterialIconName = React.ComponentProps<typeof MaterialIcons>["name"];
 type GradientPair = readonly [string, string];
@@ -36,11 +36,8 @@ export default function Booking() {
 
   useEffect(() => {
     const loadUser = async () => {
-      const stored = await AsyncStorage.getItem("user");
-      if (stored) {
-        const user = JSON.parse(stored);
-        setRole(user.role);
-      }
+      const user = await getStoredUser();
+      setRole(user?.role || null);
     };
     loadUser();
   }, []);
