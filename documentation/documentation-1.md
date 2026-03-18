@@ -1,4 +1,4 @@
-# Court Booking Project Documentation
+# BookFlow Project Documentation
 
 ## Overview
 
@@ -22,18 +22,18 @@ This is a clean and standard setup because:
 
 ```text
 court-booking/
-├── backend/
-│   ├── .env
-│   ├── server.js
-│   ├── controllers/
-│   ├── routes/
-│   ├── config/
-│   ├── mysql-schema.sql
-│   └── seed.js
-├── frontend/
-│   ├── src/config/api.js
-│   └── app/
-└── PROJECT_DOCUMENTATION.md
+|- backend/
+|   |- .env
+|   |- server.js
+|   |- controllers/
+|   |- routes/
+|   |- config/
+|   |- mysql-schema.sql
+|   `- seed.js
+|- frontend/
+|   |- src/config/api.js
+|   `- app/
+`- PROJECT_DOCUMENTATION.md
 ```
 
 ## Local Development
@@ -325,4 +325,3 @@ If needed, this file can later be converted to:
 - PDF
 - client handover document
 - deployment SOP
-

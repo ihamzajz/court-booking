@@ -780,9 +780,9 @@ export default function CourtBooking() {
             <View style={styles.playersCard}>
               <View style={styles.playersListWrap}>
                 {selectedPlayers.map((player, index) => (
-                  <View key={player.id} style={styles.playerListHalf}>
+                  <View key={player.id} style={styles.selectedPlayerItem}>
                     <View style={styles.playerListRow}>
-                      <Text style={styles.playerListRowText} numberOfLines={1}>
+                      <Text style={styles.playerListRowText}>
                         {index + 1}. {formatPlayerLine(player)}
                       </Text>
 
@@ -1291,30 +1291,30 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   playersListWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
     marginTop: 2,
-    marginHorizontal: -4,
   },
-  playerListHalf: {
-    width: "50%",
-    paddingHorizontal: 4,
+  selectedPlayerItem: {
+    width: "100%",
     marginBottom: 8,
   },
   playerListRow: {
     alignItems: "flex-start",
     borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 8,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: palette.line,
+    minHeight: 42,
+    justifyContent: "center",
   },
   playerListRowText: {
     color: palette.ink,
     fontSize: 12,
     fontFamily: "Poppins_500Medium",
     paddingRight: 36,
+    flexShrink: 1,
+    lineHeight: 18,
   },
   playerListRowMeta: {
     marginTop: 2,

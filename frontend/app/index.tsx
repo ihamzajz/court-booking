@@ -11,7 +11,7 @@ export default function Index() {
       if (user) {
         router.replace("/(tabs)/home"); // logged in
       } else {
-        router.replace("/splash-screen"); // not logged in
+        router.replace("/splash-screen" as never); // not logged in
       }
     };
 

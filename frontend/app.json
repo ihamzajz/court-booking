@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "Courtly",
+    "name": "BookFlow",
     "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/icon.PNG",
     "scheme": "frontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -16,9 +16,9 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/icon.PNG",
+        "backgroundImage": "./assets/images/icon.PNG",
+        "monochromeImage": "./assets/images/icon.PNG"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -26,7 +26,7 @@
 
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/icon.PNG"
     },
 
     "plugins": [
@@ -34,12 +34,12 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash.png",
+          "image": "./assets/images/splash-screen.PNG",
           "imageWidth": 300,
           "resizeMode": "contain",
-          "backgroundColor": "#0B1C2D",
+          "backgroundColor": "#F7FBFF",
           "dark": {
-            "backgroundColor": "#0B1C2D"
+            "backgroundColor": "#F7FBFF"
           }
         }
       ],

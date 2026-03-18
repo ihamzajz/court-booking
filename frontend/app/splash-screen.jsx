@@ -1,5 +1,4 @@
-import { Text, StyleSheet, StatusBar, Animated } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { Image, StyleSheet, StatusBar, Animated, View } from "react-native";
 import { useEffect, useRef } from "react";
 import { router } from "expo-router";
 
@@ -29,13 +28,8 @@ export default function SplashScreen() {
   }, [fadeAnim, scaleAnim]);
 
   return (
-    <LinearGradient
-      colors={["#007FFF", "#2A52BE"]}
-      start={{ x: 0.1, y: 0 }}
-      end={{ x: 0.9, y: 1 }}
-      style={styles.container}
-    >
-      <StatusBar barStyle="light-content" />
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
 
       <Animated.View
         style={[
@@ -43,48 +37,31 @@ export default function SplashScreen() {
           { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
         ]}
       >
-        <Text style={styles.icon}>T</Text>
-
-        <Text style={styles.primaryText}>
-          Court Booking App for{"\n"}North Nazimabad Gymkhana
-        </Text>
-
-        <Text style={styles.secondaryText}>
-          Book Tennis and Padel Courts Instantly
-        </Text>
+        <Image
+          source={require("../assets/images/splash-screen.PNG")}
+          style={styles.splashImage}
+          resizeMode="contain"
+        />
       </Animated.View>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#F7FBFF",
   },
   content: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 18,
+    zIndex: 2,
   },
-  icon: {
-    fontSize: 72,
-    marginBottom: 26,
-    color: "#FFFFFF",
-    fontWeight: "800",
-  },
-  primaryText: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    textAlign: "center",
-    lineHeight: 34,
-  },
-  secondaryText: {
-    marginTop: 14,
-    fontSize: 15,
-    color: "#DDE9FF",
-    textAlign: "center",
-    letterSpacing: 0.4,
+  splashImage: {
+    width: "100%",
+    maxWidth: 420,
+    height: 520,
   },
 });
