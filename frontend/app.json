@@ -4,7 +4,7 @@
     "slug": "bookflow",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.PNG",
+    "icon": "./assets/images/icon.png",
     "scheme": "bookflow",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -17,9 +17,9 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/icon.PNG",
-        "backgroundImage": "./assets/images/icon.PNG",
-        "monochromeImage": "./assets/images/icon.PNG"
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundImage": "./assets/images/icon.png",
+        "monochromeImage": "./assets/images/icon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -27,7 +27,7 @@
 
     "web": {
       "output": "static",
-      "favicon": "./assets/images/icon.PNG"
+      "favicon": "./assets/images/icon.png"
     },
 
     "plugins": [
@@ -35,7 +35,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-screen.PNG",
+          "image": "./assets/images/splash-screen.png",
           "imageWidth": 300,
           "resizeMode": "contain",
           "backgroundColor": "#F7FBFF",

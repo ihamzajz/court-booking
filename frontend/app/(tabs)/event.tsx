@@ -12,7 +12,7 @@ import {
   Alert,
   Animated,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { router, useFocusEffect } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -103,6 +103,7 @@ const isPastDate = (date) => startOfDay(date) < startOfDay(new Date());
 
 export default function EventBooking() {
   const tabBarHeight = useBottomTabBarHeight();
+  const insets = useSafeAreaInsets();
 
   const [token, setToken] = useState(null);
   const [venues, setVenues] = useState([]);
@@ -476,7 +477,7 @@ export default function EventBooking() {
           showsVerticalScrollIndicator={false}
         >
           <ImageBackground source={heroImage} style={styles.heroImage} imageStyle={styles.heroImageStyle}>
-            <View style={styles.heroOverlay}>
+            <View style={[styles.heroOverlay, { paddingTop: insets.top + 14 }]}>
               <View style={styles.heroTop}>
                 <Pressable style={styles.heroRoundBtn} onPress={() => setSelectedVenue(null)}>
                   <MaterialIcons name="arrow-back" size={28} color={palette.ink} />

@@ -1,8 +1,9 @@
-import { Tabs, router } from "expo-router";
-import { useEffect, useState } from "react";
+import { Tabs, router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
-import { View, StyleSheet } from "react-native";
+import { AppState, Platform, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as NavigationBar from "expo-navigation-bar";
 
 import { getStoredUser } from "../../src/utils/auth";
 
@@ -20,6 +21,17 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const bottomInset = Math.max(insets.bottom, 0);
   const [isReady, setIsReady] = useState(false);
+  const tabBarBottomOffset = Platform.OS === "android" ? Math.max(bottomInset, 10) : Math.max(bottomInset, 10);
+
+  const applyAndroidNavBar = useCallback(async () => {
+    if (Platform.OS !== "android") return;
+
+    try {
+      await NavigationBar.setButtonStyleAsync("light");
+    } catch {
+      // Ignore nav bar API failures on unsupported Android environments.
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -38,11 +50,25 @@ export default function TabLayout() {
     };
 
     ensureSession();
+    applyAndroidNavBar();
+
+    const appStateSubscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        applyAndroidNavBar();
+      }
+    });
 
     return () => {
       isMounted = false;
+      appStateSubscription.remove();
     };
-  }, []);
+  }, [applyAndroidNavBar]);
+
+  useFocusEffect(
+    useCallback(() => {
+      applyAndroidNavBar();
+    }, [applyAndroidNavBar])
+  );
 
   if (!isReady) {
     return <View style={styles.bootScreen} />;
@@ -63,9 +89,9 @@ export default function TabLayout() {
         tabBarStyle: [
           styles.tabBar,
           {
-            bottom: 0,
-            height: 68 + bottomInset,
-            paddingBottom: bottomInset,
+            bottom: tabBarBottomOffset,
+            height: 68,
+            paddingBottom: 10,
             paddingTop: 10,
           },
         ],

@@ -63,6 +63,7 @@ export default function AppScreen({
       showsVerticalScrollIndicator={false}
       contentInsetAdjustmentBehavior="never"
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
       overScrollMode="never"
       {...scrollProps}
     >

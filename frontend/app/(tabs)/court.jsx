@@ -12,7 +12,7 @@ import {
   Animated,
   Modal,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { router, useFocusEffect } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -109,6 +109,7 @@ const formatPlayerLine = (player) =>
 
 export default function CourtBooking() {
   const tabBarHeight = useBottomTabBarHeight();
+  const insets = useSafeAreaInsets();
 
   const [token, setToken] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -608,7 +609,7 @@ export default function CourtBooking() {
           showsVerticalScrollIndicator={false}
         >
           <ImageBackground source={heroImage} style={styles.heroImage} imageStyle={styles.heroImageStyle}>
-            <View style={styles.heroOverlay}>
+            <View style={[styles.heroOverlay, { paddingTop: insets.top + 14 }]}>
               <View style={styles.heroTop}>
                 <Pressable style={styles.heroRoundBtn} onPress={() => setSelectedCourt(null)}>
                   <MaterialIcons name="arrow-back" size={28} color={palette.ink} />

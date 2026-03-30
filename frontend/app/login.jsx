@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 
 import { AUTH_API } from "../src/config/api";
@@ -76,10 +77,17 @@ export default function Login() {
     >
       <View style={styles.container}>
         <View style={styles.page}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Login</Text>
-            <Text style={styles.subtitle}>Sign in to continue to your account.</Text>
-          </View>
+          <LinearGradient
+            colors={["#0B0B0F", "#5B5F6A"]}
+            start={{ x: 0.1, y: 0 }}
+            end={{ x: 0.9, y: 1 }}
+            style={styles.hero}
+          >
+            <View style={styles.header}>
+              <Text style={styles.title}>Login</Text>
+              <Text style={styles.subtitle}>Sign in to continue to your account.</Text>
+            </View>
+          </LinearGradient>
 
           <View style={styles.card}>
             {!!error && (
@@ -101,7 +109,15 @@ export default function Login() {
               autoCapitalize="none"
             />
 
-            <Text style={styles.fieldLabel}>Password</Text>
+            <View style={styles.fieldLabelRow}>
+              <Text style={styles.fieldLabel}>Password</Text>
+              <Pressable
+                onPress={() => router.push("/forgot-password")}
+                style={({ pressed }) => [styles.inlineAction, pressed && { opacity: 0.75 }]}
+              >
+                <Text style={styles.inlineActionText}>Forgot password?</Text>
+              </Pressable>
+            </View>
             <Field
               icon="lock-outline"
               placeholder="Enter password"
@@ -114,13 +130,6 @@ export default function Login() {
               rightIcon={secure ? "visibility" : "visibility-off"}
               onRightIconPress={() => setSecure((s) => !s)}
             />
-
-            <Pressable
-              onPress={() => router.push("/forgot-password")}
-              style={({ pressed }) => [styles.inlineAction, pressed && { opacity: 0.75 }]}
-            >
-              <Text style={styles.inlineActionText}>Forgot password?</Text>
-            </Pressable>
 
             <Pressable
               onPress={canSubmit ? handleLogin : undefined}
@@ -197,21 +206,28 @@ const styles = StyleSheet.create({
     maxWidth: 520,
     alignSelf: "center",
   },
+  hero: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    marginBottom: 14,
+  },
   header: {
     alignItems: "center",
-    marginBottom: 18,
   },
   title: {
     fontSize: 30,
     fontFamily: "Poppins_700Bold",
-    color: "#0F172A",
+    color: "#FFFFFF",
     textAlign: "center",
   },
   subtitle: {
     marginTop: 6,
     fontSize: 13,
     fontFamily: "Poppins_500Medium",
-    color: "#64748B",
+    color: "rgba(255,255,255,0.78)",
     textAlign: "center",
   },
   card: {
@@ -261,6 +277,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: 6,
   },
+  fieldLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   fieldIcon: {
     width: 30,
     alignItems: "center",
@@ -277,15 +298,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   inlineAction: {
-    alignSelf: "flex-end",
-    marginTop: -2,
-    marginBottom: 10,
-    paddingVertical: 4,
+    marginBottom: 6,
+    paddingVertical: 2,
+    paddingLeft: 8,
   },
   inlineActionText: {
     color: "#1D4ED8",
     fontFamily: "Poppins_700Bold",
-    fontSize: 12.5,
+    fontSize: 11.5,
   },
   primaryBtn: {
     marginTop: 6,

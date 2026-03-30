@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 
 import { AUTH_API } from "../src/config/api";
@@ -102,10 +103,17 @@ export default function Register() {
     >
       <View style={styles.container}>
         <View style={styles.page}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Register</Text>
-            <Text style={styles.subtitle}>Create your account to request bookings.</Text>
-          </View>
+          <LinearGradient
+            colors={["#0B0B0F", "#5B5F6A"]}
+            start={{ x: 0.1, y: 0 }}
+            end={{ x: 0.9, y: 1 }}
+            style={styles.hero}
+          >
+            <View style={styles.header}>
+              <Text style={styles.title}>Register</Text>
+              <Text style={styles.subtitle}>Create your account to request bookings.</Text>
+            </View>
+          </LinearGradient>
 
           <View style={styles.card}>
             {!!error && (
@@ -251,21 +259,28 @@ const styles = StyleSheet.create({
     maxWidth: 520,
     alignSelf: "center",
   },
+  hero: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    marginBottom: 14,
+  },
   header: {
     alignItems: "center",
-    marginBottom: 18,
   },
   title: {
     fontSize: 30,
     fontFamily: "Poppins_700Bold",
-    color: "#0F172A",
+    color: "#FFFFFF",
     textAlign: "center",
   },
   subtitle: {
     marginTop: 6,
     fontSize: 13,
     fontFamily: "Poppins_500Medium",
-    color: "#64748B",
+    color: "rgba(255,255,255,0.78)",
     textAlign: "center",
   },
   card: {

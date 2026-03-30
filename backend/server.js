@@ -1,5 +1,6 @@
 const express = require("express");
 const dotenv = require("dotenv");
+dotenv.config();
 const cors = require("cors");
 const multer = require("multer");
 const http = require("http");
@@ -8,8 +9,6 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const { initSocketServer } = require("./socket");
 const { ensureAuthTables } = require("./services/authSchemaService");
-
-dotenv.config();
 
 const app = express();
 const server = http.createServer(app);

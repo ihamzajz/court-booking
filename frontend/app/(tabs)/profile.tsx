@@ -151,7 +151,7 @@ export default function Profile() {
   };
 
   return (
-    <AppScreen bottomOffset={tabBarHeight + 34} contentContainerStyle={styles.content}>
+    <AppScreen bottomOffset={tabBarHeight + 64} contentContainerStyle={styles.content}>
       <LinearGradient
         colors={["#000080", "#00BFFF"]}
         start={{ x: 0.1, y: 0 }}
@@ -495,6 +495,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     marginTop: 12,
+    marginBottom: 20,
   },
   adminPanelActionText: {
     color: "#FFFFFF",
