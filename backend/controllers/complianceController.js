@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const { getAppName, getPrivacyContactName, getSupportEmail } = require("../config/env");
+const { disconnectUserSockets, emitRealtime } = require("../socket");
 
 const escapeHtml = (value) =>
   String(value || "")
@@ -179,8 +180,165 @@ const submitAccountDeletionRequest = async (req, res) => {
   }
 };
 
+const normalizeDeletionStatus = (value) => {
+  const normalized = String(value || "").trim().toLowerCase();
+  return normalized === "processed" ? "processed" : "pending";
+};
+
+const listAccountDeletionRequests = async (req, res) => {
+  const status = normalizeDeletionStatus(req.query?.status);
+
+  try {
+    const [rows] = await pool.query(
+      `SELECT
+         adr.id,
+         adr.user_id,
+         adr.email,
+         adr.note,
+         adr.resolution_note,
+         adr.status,
+         adr.processed_by,
+         adr.processed_at,
+         adr.created_at,
+         adr.updated_at,
+         u.name AS user_name,
+         u.username AS user_username,
+         u.status AS user_status,
+         processed_user.name AS processed_by_name
+       FROM account_deletion_requests adr
+       LEFT JOIN users u ON u.id = adr.user_id
+       LEFT JOIN users processed_user ON processed_user.id = adr.processed_by
+       WHERE adr.status = ?
+       ORDER BY adr.created_at DESC`,
+      [status]
+    );
+
+    return res.json(rows);
+  } catch (error) {
+    console.error("Failed to fetch account deletion requests", error);
+    return res.status(500).json({ message: "Failed to fetch account deletion requests" });
+  }
+};
+
+const processAccountDeletionRequest = async (req, res) => {
+  const requestId = Number(req.params?.id);
+  const action = String(req.body?.action || "mark_processed").trim().toLowerCase();
+  const resolutionNote = String(req.body?.resolutionNote || "").trim() || null;
+
+  if (!Number.isInteger(requestId) || requestId <= 0) {
+    return res.status(400).json({ message: "Valid request id is required" });
+  }
+
+  if (action !== "mark_processed" && action !== "delete_user") {
+    return res.status(400).json({ message: "Unsupported processing action" });
+  }
+
+  let connection;
+
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    const [requestRows] = await connection.query(
+      `SELECT id, user_id, email, status
+       FROM account_deletion_requests
+       WHERE id = ?
+       FOR UPDATE`,
+      [requestId]
+    );
+
+    if (requestRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ message: "Deletion request not found" });
+    }
+
+    const deletionRequest = requestRows[0];
+
+    if (deletionRequest.status === "processed") {
+      await connection.rollback();
+      return res.status(400).json({ message: "Deletion request already processed" });
+    }
+
+    let deletedUserId = null;
+
+    if (action === "delete_user" && deletionRequest.user_id) {
+      const [userRows] = await connection.query(
+        `SELECT id
+         FROM users
+         WHERE id = ?
+         FOR UPDATE`,
+        [deletionRequest.user_id]
+      );
+
+      if (userRows.length > 0) {
+        deletedUserId = Number(userRows[0].id);
+        await connection.query("DELETE FROM users WHERE id = ?", [deletedUserId]);
+      }
+    }
+
+    await connection.query(
+      `UPDATE account_deletion_requests
+       SET status = 'processed',
+           resolution_note = ?,
+           processed_by = ?,
+           processed_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [resolutionNote, req.user.id, requestId]
+    );
+
+    await connection.commit();
+
+    emitRealtime("users:updated", { action: "deletion-request-processed", id: requestId });
+
+    if (deletedUserId) {
+      await disconnectUserSockets(deletedUserId);
+    }
+
+    const [updatedRows] = await pool.query(
+      `SELECT
+         adr.id,
+         adr.user_id,
+         adr.email,
+         adr.note,
+         adr.resolution_note,
+         adr.status,
+         adr.processed_by,
+         adr.processed_at,
+         adr.created_at,
+         adr.updated_at,
+         processed_user.name AS processed_by_name
+       FROM account_deletion_requests adr
+       LEFT JOIN users processed_user ON processed_user.id = adr.processed_by
+       WHERE adr.id = ?`,
+      [requestId]
+    );
+
+    return res.json({
+      message:
+        action === "delete_user"
+          ? "Deletion request processed and linked account removed"
+          : "Deletion request marked as processed",
+      deletedUserId,
+      request: updatedRows[0],
+    });
+  } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+
+    console.error("Failed to process account deletion request", error);
+    return res.status(500).json({ message: "Failed to process account deletion request" });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+};
+
 module.exports = {
   renderPrivacyPolicy,
   renderAccountDeletionPage,
   submitAccountDeletionRequest,
+  listAccountDeletionRequests,
+  processAccountDeletionRequest,
 };

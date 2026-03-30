@@ -23,3 +23,4 @@ export const SLIDE_IMAGES_BASE = `${UPLOADS_BASE}/slides/`;
 export const FAQS_API = `${API_BASE}/faqs`;
 export const NEWS_API = `${API_BASE}/news`;
 export const NEWS_IMAGES_BASE = `${UPLOADS_BASE}/news/`;
+export const COMPLIANCE_API = `${API_BASE}/compliance`;

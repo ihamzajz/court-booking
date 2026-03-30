@@ -30,6 +30,49 @@ const ensureUsersTokenVersionColumn = async () => {
   `);
 };
 
+const ensureAccountDeletionRequestColumns = async () => {
+  const [tableRows] = await pool.query(
+    `SELECT COUNT(*) AS total
+     FROM information_schema.TABLES
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'account_deletion_requests'`
+  );
+
+  if (Number(tableRows[0]?.total || 0) === 0) {
+    return;
+  }
+
+  const requiredColumns = [
+    {
+      name: "processed_by",
+      sql: "ALTER TABLE account_deletion_requests ADD COLUMN processed_by INT DEFAULT NULL AFTER status",
+    },
+    {
+      name: "processed_at",
+      sql: "ALTER TABLE account_deletion_requests ADD COLUMN processed_at TIMESTAMP NULL DEFAULT NULL AFTER processed_by",
+    },
+    {
+      name: "resolution_note",
+      sql: "ALTER TABLE account_deletion_requests ADD COLUMN resolution_note TEXT DEFAULT NULL AFTER note",
+    },
+  ];
+
+  for (const column of requiredColumns) {
+    const [rows] = await pool.query(
+      `SELECT COUNT(*) AS total
+       FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = 'account_deletion_requests'
+         AND COLUMN_NAME = ?`,
+      [column.name]
+    );
+
+    if (Number(rows[0]?.total || 0) === 0) {
+      await pool.query(column.sql);
+    }
+  }
+};
+
 const ensureAuthTables = async () => {
   await ensureUsersTokenVersionColumn();
 
@@ -53,7 +96,10 @@ const ensureAuthTables = async () => {
       user_id INT DEFAULT NULL,
       email VARCHAR(150) NOT NULL,
       note TEXT DEFAULT NULL,
+      resolution_note TEXT DEFAULT NULL,
       status ENUM('pending', 'processed') NOT NULL DEFAULT 'pending',
+      processed_by INT DEFAULT NULL,
+      processed_at TIMESTAMP NULL DEFAULT NULL,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
@@ -62,6 +108,8 @@ const ensureAuthTables = async () => {
       CONSTRAINT fk_account_deletion_requests_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     )
   `);
+
+  await ensureAccountDeletionRequestColumns();
 };
 
 module.exports = {

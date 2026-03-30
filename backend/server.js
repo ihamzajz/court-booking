@@ -147,7 +147,6 @@ const shutdown = async (signal) => {
   }, 10000).unref();
 };
 
-// ll
 const startServer = async () => {
   try {
     await ensureAuthTables();

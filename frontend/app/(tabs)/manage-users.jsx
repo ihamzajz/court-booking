@@ -20,7 +20,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 
 import TopHeaderBox from "../../components/TopHeaderBox";
-import { USERS_API } from "../../src/config/api";
+import { COMPLIANCE_API, USERS_API } from "../../src/config/api";
 import { getStoredToken, getStoredUser } from "../../src/utils/auth";
 
 const CONTROL_HEIGHT = 48;
@@ -43,7 +43,10 @@ export default function ManageUsers() {
   const [token, setToken] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
+  const [deletionRequests, setDeletionRequests] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingDeletionRequests, setLoadingDeletionRequests] = useState(false);
+  const [processingRequestId, setProcessingRequestId] = useState(null);
   const [search, setSearch] = useState("");
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -105,10 +108,76 @@ export default function ManageUsers() {
     }
   };
 
+  const fetchDeletionRequests = async () => {
+    if (!token) return;
+
+    try {
+      setLoadingDeletionRequests(true);
+      const res = await fetch(`${COMPLIANCE_API}/account-deletion-requests?status=pending`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ([]));
+
+      if (!res.ok) {
+        Alert.alert("Error", data?.message || "Failed to load deletion requests");
+        return;
+      }
+
+      setDeletionRequests(Array.isArray(data) ? data : []);
+    } catch {
+      Alert.alert("Error", "Failed to load deletion requests");
+    } finally {
+      setLoadingDeletionRequests(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchDeletionRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  const processDeletionRequest = (requestItem, action) => {
+    if (!token) return;
+
+    const actionLabel = action === "delete_user" ? "delete the linked account" : "mark this request as processed";
+
+    Alert.alert("Confirm", `Do you want to ${actionLabel}?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Confirm",
+        style: action === "delete_user" ? "destructive" : "default",
+        onPress: async () => {
+          try {
+            setProcessingRequestId(requestItem.id);
+            const res = await fetch(`${COMPLIANCE_API}/account-deletion-requests/${requestItem.id}/process`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ action }),
+            });
+
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+              Alert.alert("Error", data?.message || "Failed to process deletion request");
+              return;
+            }
+
+            Alert.alert("Success", data?.message || "Deletion request processed");
+            fetchDeletionRequests();
+            fetchUsers();
+          } catch {
+            Alert.alert("Error", "Failed to process deletion request");
+          } finally {
+            setProcessingRequestId(null);
+          }
+        },
+      },
+    ]);
+  };
 
   const resetForm = () => {
     setName("");
@@ -354,8 +423,77 @@ export default function ManageUsers() {
     </View>
   );
 
+  const renderDeletionRequest = (item) => {
+    const isProcessing = processingRequestId === item.id;
+    const canDeleteLinkedUser = Boolean(item.user_id);
+
+    return (
+      <View key={item.id} style={styles.requestCard}>
+        <View style={styles.requestHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.requestEmail}>{item.email}</Text>
+            <Text style={styles.requestMeta}>
+              {item.user_name ? `${item.user_name} (@${item.user_username || "-"})` : "No linked user found"}
+            </Text>
+          </View>
+          <View style={styles.requestBadge}>
+            <Text style={styles.requestBadgeText}>Pending</Text>
+          </View>
+        </View>
+
+        {item.note ? (
+          <Text style={styles.requestNote}>Note: {item.note}</Text>
+        ) : (
+          <Text style={styles.requestNoteMuted}>No note provided.</Text>
+        )}
+
+        <Text style={styles.requestDate}>
+          Requested: {new Date(item.created_at).toLocaleString()}
+        </Text>
+
+        <View style={styles.requestActions}>
+          <Pressable
+            android_ripple={{ color: "rgba(255,255,255,0.12)" }}
+            style={({ pressed }) => [
+              styles.requestActionBtn,
+              styles.requestResolveBtn,
+              pressed && Platform.OS === "ios" && styles.pressed,
+              isProcessing && { opacity: 0.7 },
+            ]}
+            onPress={isProcessing ? undefined : () => processDeletionRequest(item, "mark_processed")}
+          >
+            <Text style={styles.requestActionText}>Mark Processed</Text>
+          </Pressable>
+
+          {canDeleteLinkedUser ? (
+            <Pressable
+              android_ripple={{ color: "rgba(255,255,255,0.12)" }}
+              style={({ pressed }) => [
+                styles.requestActionBtn,
+                styles.requestDeleteBtn,
+                pressed && Platform.OS === "ios" && styles.pressed,
+                isProcessing && { opacity: 0.7 },
+              ]}
+              onPress={isProcessing ? undefined : () => processDeletionRequest(item, "delete_user")}
+            >
+              {isProcessing ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.requestActionText}>Delete User</Text>
+              )}
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+    );
+  };
+
   const TOP_GUTTER = 12;
   const BOTTOM_GUTTER = 12;
+  const refreshManageUsersScreen = () => {
+    fetchUsers();
+    fetchDeletionRequests();
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -402,10 +540,28 @@ export default function ManageUsers() {
             keyExtractor={(item) => String(item.id)}
             renderItem={renderUser}
             refreshing={loading}
-            onRefresh={fetchUsers}
+            onRefresh={refreshManageUsersScreen}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingTop: 8, paddingBottom: 6 }}
             ItemSeparatorComponent={() => <View style={{ height: 6 }} />}
+            ListFooterComponent={
+              <View style={styles.requestSection}>
+                <View style={styles.requestSectionHeader}>
+                  <Text style={styles.requestSectionTitle}>Pending Deletion Requests</Text>
+                  {loadingDeletionRequests ? <ActivityIndicator size="small" color={palette.navy} /> : null}
+                </View>
+                {deletionRequests.length > 0 ? (
+                  deletionRequests.map(renderDeletionRequest)
+                ) : (
+                  <View style={styles.requestEmpty}>
+                    <Text style={styles.requestEmptyTitle}>No pending deletion requests.</Text>
+                    <Text style={styles.requestEmptyText}>
+                      Web account deletion requests will appear here for admin review.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            }
             ListEmptyComponent={
               !loading ? (
                 <View style={styles.empty}>
@@ -826,6 +982,113 @@ const styles = StyleSheet.create({
   },
   emptyText: { color: palette.ink, textAlign: "center", fontFamily: "Poppins_700Bold", marginTop: 10 },
   emptySub: { marginTop: 6, color: palette.muted, textAlign: "center", fontFamily: "Poppins_500Medium" },
+  requestSection: {
+    marginTop: 18,
+    gap: 10,
+  },
+  requestSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  requestSectionTitle: {
+    color: palette.ink,
+    fontSize: 15,
+    fontFamily: "Poppins_700Bold",
+  },
+  requestEmpty: {
+    backgroundColor: palette.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: palette.line,
+    padding: 18,
+  },
+  requestEmptyTitle: {
+    color: palette.ink,
+    fontFamily: "Poppins_700Bold",
+    fontSize: 13,
+  },
+  requestEmptyText: {
+    marginTop: 4,
+    color: palette.muted,
+    fontFamily: "Poppins_500Medium",
+    fontSize: 12,
+  },
+  requestCard: {
+    backgroundColor: palette.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: palette.line,
+    padding: 14,
+    gap: 8,
+  },
+  requestHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  requestEmail: {
+    color: palette.ink,
+    fontSize: 13,
+    fontFamily: "Poppins_700Bold",
+  },
+  requestMeta: {
+    marginTop: 2,
+    color: palette.muted,
+    fontFamily: "Poppins_500Medium",
+    fontSize: 11.5,
+  },
+  requestBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    backgroundColor: "#FFF7E8",
+    borderWidth: 1,
+    borderColor: "#F3DEB2",
+  },
+  requestBadgeText: {
+    color: "#B07A19",
+    fontFamily: "Poppins_700Bold",
+    fontSize: 10.5,
+  },
+  requestNote: {
+    color: palette.ink,
+    fontFamily: "Poppins_500Medium",
+    fontSize: 12,
+  },
+  requestNoteMuted: {
+    color: palette.muted,
+    fontFamily: "Poppins_500Medium",
+    fontSize: 12,
+  },
+  requestDate: {
+    color: palette.muted,
+    fontFamily: "Poppins_500Medium",
+    fontSize: 11.5,
+  },
+  requestActions: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  requestActionBtn: {
+    minHeight: 42,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  requestResolveBtn: {
+    backgroundColor: "#6C757D",
+  },
+  requestDeleteBtn: {
+    backgroundColor: "#B42318",
+  },
+  requestActionText: {
+    color: "#FFFFFF",
+    fontFamily: "Poppins_700Bold",
+    fontSize: 12,
+  },
   pressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
   modalOverlay: { flex: 1, justifyContent: "center", padding: 16 },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)" },

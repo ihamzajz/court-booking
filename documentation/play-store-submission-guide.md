@@ -21,6 +21,26 @@ Example:
 - `https://api.bookflowapp.com/account-deletion`
 - `https://api.bookflowapp.com/health`
 
+## Localhost To Production Switch
+
+Your current setup can stay on localhost during development. When you move to production, update these values:
+
+- Backend `.env`
+- Set `CORS_ORIGIN` to your frontend origin
+- Set `SUPPORT_EMAIL` to your real support email
+- Keep the same API routes; only the host changes
+- Frontend `.env`
+- Set `EXPO_PUBLIC_API_BASE_URL` to your backend domain
+
+Example:
+
+- Development backend: `http://localhost:5000`
+- Production backend: `https://api.abc.com`
+- Frontend env value:
+- `EXPO_PUBLIC_API_BASE_URL=https://api.abc.com`
+
+If your mobile app currently points to localhost for testing, the production build must use the live HTTPS backend domain instead.
+
 ## Backend Routes That Must Stay Live
 
 These routes are now part of the submission/compliance flow:
@@ -30,6 +50,8 @@ These routes are now part of the submission/compliance flow:
 - `POST /account-deletion`
 - `GET /health`
 - `DELETE /api/auth/me`
+- `GET /api/compliance/account-deletion-requests`
+- `PUT /api/compliance/account-deletion-requests/:id/process`
 
 ## Required Production Environment Variables
 
@@ -99,6 +121,7 @@ BookFlow now supports both:
 
 - In-app deletion from the Profile screen
 - Public web deletion form at `/account-deletion`
+- Admin review and processing of web deletion requests from the Manage Users screen
 
 Use this URL in Play Console:
 
