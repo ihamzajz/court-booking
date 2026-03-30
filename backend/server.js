@@ -7,8 +7,13 @@ const http = require("http");
 const { Server } = require("socket.io");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+
+const pool = require("./config/db");
+const { getAllowedOrigins, getUploadsRoot, isProduction, validateEnv } = require("./config/env");
 const { initSocketServer } = require("./socket");
 const { ensureAuthTables } = require("./services/authSchemaService");
+
+validateEnv();
 
 const app = express();
 const server = http.createServer(app);
@@ -35,18 +40,30 @@ app.use(
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN
-      ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
-      : "*",
+    origin: (origin, callback) => {
+      const allowedOrigins = getAllowedOrigins();
+
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (!allowedOrigins.length && !isProduction) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Origin not allowed by CORS"));
+    },
+    credentials: true,
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 app.use("/api", apiLimiter);
 app.use("/api/auth", authLimiter);
-
-const path = require("path");
-
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(getUploadsRoot()));
 
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/courts", require("./routes/courtRoutes"));
@@ -69,6 +86,10 @@ app.use((err, _req, res, next) => {
     return res.status(400).json({ message: err.message });
   }
 
+  if (err.message === "Origin not allowed by CORS") {
+    return res.status(403).json({ message: err.message });
+  }
+
   if (err.message === "Only images allowed") {
     return res.status(400).json({ message: err.message });
   }
@@ -81,6 +102,30 @@ const PORT = process.env.PORT || 5000;
 
 initSocketServer(server, Server);
 
+let isShuttingDown = false;
+
+const shutdown = async (signal) => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  console.log(`Received ${signal}. Shutting down gracefully...`);
+
+  server.close(async () => {
+    try {
+      await pool.end();
+      process.exit(0);
+    } catch (error) {
+      console.error("Failed to close database pool cleanly", error);
+      process.exit(1);
+    }
+  });
+
+  setTimeout(() => {
+    console.error("Graceful shutdown timed out");
+    process.exit(1);
+  }, 10000).unref();
+};
+
 const startServer = async () => {
   try {
     await ensureAuthTables();
@@ -92,3 +137,6 @@ const startServer = async () => {
 };
 
 startServer();
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));

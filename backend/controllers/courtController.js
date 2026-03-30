@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const fs = require("fs");
 const path = require("path");
+const { getUploadSubdirPath } = require("../config/uploads");
 const { emitRealtime } = require("../socket");
 const { isDuplicateEntryError } = require("../utils/dbErrors");
 
@@ -116,10 +117,7 @@ exports.updateCourt = async (req, res) => {
     if (req.file && court.picture) {
 
       const oldPath = path.join(
-        __dirname,
-        "..",
-        "uploads",
-        "courts",
+        getUploadSubdirPath("courts"),
         court.picture
       );
 
@@ -171,10 +169,7 @@ exports.deleteCourt = async (req, res) => {
     if (court.picture) {
 
       const filePath = path.join(
-        __dirname,
-        "..",
-        "uploads",
-        "courts",
+        getUploadSubdirPath("courts"),
         court.picture
       );
 

@@ -2,6 +2,9 @@ const pool = require("../config/db");
 const { emitRealtime } = require("../socket");
 const { withNamedLock } = require("../utils/locking");
 
+const BOOKING_STATUSES = ["PENDING", "APPROVED", "REJECTED", "CANCELLED"];
+const PAYMENT_STATUSES = ["UNPAID", "PAID"];
+
 const parseTimeToMinutes = (value) => {
   const parts = String(value || "").split(":");
 
@@ -204,10 +207,15 @@ exports.adminUpdateEventBookingStatus = async (req, res) => {
   try {
     const bookingId = req.params.id;
     const { status, adminNote } = req.body;
+    const normalizedStatus = String(status || "").trim().toUpperCase();
+
+    if (!BOOKING_STATUSES.includes(normalizedStatus)) {
+      return res.status(400).json({ message: "Invalid booking status" });
+    }
 
     await pool.query(
       `UPDATE event_bookings SET booking_status = ?, admin_note = ? WHERE id = ?`,
-      [status, adminNote || "", bookingId]
+      [normalizedStatus, String(adminNote || "").trim(), bookingId]
     );
 
     const [booking] = await pool.query(
@@ -231,10 +239,15 @@ exports.updateEventBookingPayment = async (req, res) => {
   try {
     const bookingId = req.params.id;
     const { paymentStatus } = req.body;
+    const normalizedPaymentStatus = String(paymentStatus || "").trim().toUpperCase();
+
+    if (!PAYMENT_STATUSES.includes(normalizedPaymentStatus)) {
+      return res.status(400).json({ message: "Invalid payment status" });
+    }
 
     await pool.query(
       `UPDATE event_bookings SET payment_status = ? WHERE id = ?`,
-      [paymentStatus, bookingId]
+      [normalizedPaymentStatus, bookingId]
     );
 
     const [booking] = await pool.query(

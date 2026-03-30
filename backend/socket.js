@@ -1,15 +1,19 @@
+const { getAllowedOrigins, isProduction } = require("./config/env");
+
 let io = null;
 
 const buildSocketCorsOptions = () => {
-  if (!process.env.CORS_ORIGIN) {
+  const allowedOrigins = getAllowedOrigins();
+
+  if (!allowedOrigins.length) {
     return {
-      origin: "*",
+      origin: !isProduction,
       methods: ["GET", "POST", "PUT", "DELETE"],
     };
   }
 
   return {
-    origin: process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim()),
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   };

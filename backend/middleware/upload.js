@@ -1,8 +1,9 @@
 const fs = require("fs");
 const multer = require("multer");
 const path = require("path");
+const { getUploadSubdirPath } = require("../config/uploads");
 
-const uploadDir = path.join(__dirname, "..", "uploads", "courts");
+const uploadDir = getUploadSubdirPath("courts");
 fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({

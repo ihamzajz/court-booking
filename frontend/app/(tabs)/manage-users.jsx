@@ -21,7 +21,7 @@ import { Picker } from "@react-native-picker/picker";
 
 import TopHeaderBox from "../../components/TopHeaderBox";
 import { USERS_API } from "../../src/config/api";
-import { getStoredToken } from "../../src/utils/auth";
+import { getStoredToken, getStoredUser } from "../../src/utils/auth";
 
 const CONTROL_HEIGHT = 48;
 const palette = {
@@ -41,6 +41,7 @@ export default function ManageUsers() {
   const tabBarHeight = useBottomTabBarHeight();
 
   const [token, setToken] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -61,7 +62,15 @@ export default function ManageUsers() {
 
   useEffect(() => {
     getStoredToken().then(setToken);
+    getStoredUser().then(setCurrentUser);
   }, []);
+
+  useEffect(() => {
+    if (currentUser && currentUser.role !== "admin" && currentUser.role !== "superadmin") {
+      Alert.alert("Access Denied", "Only admin can access manage users.");
+      router.replace("/(tabs)/home");
+    }
+  }, [currentUser]);
 
   const filteredUsers = useMemo(() => {
     const value = search.trim().toLowerCase();
@@ -151,6 +160,8 @@ export default function ManageUsers() {
     fees_status: feesStatus,
   });
 
+  const canManagePrivilegedUsers = currentUser?.role === "superadmin";
+
   const validateForm = () => {
     if (!name.trim() || !username.trim() || !email.trim()) {
       Alert.alert("Validation", "Name, username, and email are required");
@@ -228,6 +239,11 @@ export default function ManageUsers() {
   const deleteUser = (id) => {
     if (!token) return;
 
+    if (Number(id) === Number(currentUser?.id)) {
+      Alert.alert("Blocked", "You cannot delete your own account.");
+      return;
+    }
+
     Alert.alert("Confirm", "Delete this user?", [
       { text: "Cancel" },
       {
@@ -276,7 +292,13 @@ export default function ManageUsers() {
                 styles.editBtn,
                 pressed && Platform.OS === "ios" && styles.pressed,
               ]}
-              onPress={() => openEditModal(item)}
+              onPress={() => {
+                if (!canManagePrivilegedUsers && (item.role === "admin" || item.role === "superadmin")) {
+                  Alert.alert("Restricted", "Only superadmin can manage admin or superadmin accounts.");
+                  return;
+                }
+                openEditModal(item);
+              }}
             >
               <MaterialIcons name="edit" size={16} color={palette.navy} />
             </Pressable>
@@ -288,7 +310,13 @@ export default function ManageUsers() {
                 styles.deleteBtn,
                 pressed && Platform.OS === "ios" && styles.pressed,
               ]}
-              onPress={() => deleteUser(item.id)}
+              onPress={() => {
+                if (!canManagePrivilegedUsers && (item.role === "admin" || item.role === "superadmin")) {
+                  Alert.alert("Restricted", "Only superadmin can manage admin or superadmin accounts.");
+                  return;
+                }
+                deleteUser(item.id);
+              }}
             >
               <MaterialIcons name="delete-outline" size={16} color={palette.navy} />
             </Pressable>
@@ -487,8 +515,12 @@ export default function ManageUsers() {
                     <View style={styles.pickerWrap}>
                       <Picker selectedValue={role} onValueChange={setRole} style={styles.picker}>
                         <Picker.Item label="User" value="user" />
-                        <Picker.Item label="Admin" value="admin" />
-                        <Picker.Item label="Superadmin" value="superadmin" />
+                        {canManagePrivilegedUsers ? (
+                          <Picker.Item label="Admin" value="admin" />
+                        ) : null}
+                        {canManagePrivilegedUsers ? (
+                          <Picker.Item label="Superadmin" value="superadmin" />
+                        ) : null}
                       </Picker>
                     </View>
                   </View>

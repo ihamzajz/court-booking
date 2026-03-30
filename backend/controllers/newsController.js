@@ -2,9 +2,10 @@ const fs = require("fs");
 const path = require("path");
 
 const pool = require("../config/db");
+const { getUploadSubdirPath } = require("../config/uploads");
 const { emitRealtime } = require("../socket");
 
-const newsDir = path.join(__dirname, "..", "uploads", "news");
+const newsDir = getUploadSubdirPath("news");
 
 const normalizeStatus = (value, fallback = "active") => {
   if (typeof value === "string") {

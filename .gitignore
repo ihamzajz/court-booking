@@ -1,0 +1,8 @@
+backend/.env
+frontend/.env
+
+backend/uploads/
+frontend/.expo/
+
+backend/node_modules/
+frontend/node_modules/

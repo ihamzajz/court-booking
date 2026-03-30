@@ -3,6 +3,39 @@ const bcrypt = require("bcryptjs");
 const { emitRealtime } = require("../socket");
 const { isDuplicateEntryError } = require("../utils/dbErrors");
 
+const USER_ROLES = ["user", "admin", "superadmin"];
+const USER_STATUSES = ["active", "inactive"];
+const USER_CAN_BOOK = ["yes", "no"];
+const USER_FEES_STATUSES = ["paid", "defaulter"];
+
+const normalizeEnumValue = (value, allowedValues, fallback) => {
+  const normalized = String(value || "").trim().toLowerCase();
+  return allowedValues.includes(normalized) ? normalized : fallback;
+};
+
+const isAdminRole = (role) => role === "admin" || role === "superadmin";
+const isSuperadminRole = (role) => role === "superadmin";
+
+const ensureAdminCanManageRole = ({ actorRole, targetRole, nextRole }) => {
+  if (isSuperadminRole(actorRole)) {
+    return null;
+  }
+
+  if (isAdminRole(targetRole) || isAdminRole(nextRole)) {
+    return "Only superadmin can manage admin or superadmin accounts";
+  }
+
+  return null;
+};
+
+const countSuperadmins = async () => {
+  const [rows] = await pool.query(
+    "SELECT COUNT(*) AS total FROM users WHERE role = 'superadmin'"
+  );
+
+  return Number(rows[0]?.total || 0);
+};
+
 exports.getBookingPlayers = async (req, res) => {
   try {
     const [users] = await pool.query(
@@ -45,18 +78,10 @@ exports.createUser = async (req, res) => {
     const normalizedName = String(name).trim();
     const normalizedUsername = String(username).trim().toLowerCase();
     const normalizedEmail = String(email).trim().toLowerCase();
-    const normalizedRole = ["user", "admin", "superadmin"].includes(String(role || "user"))
-      ? String(role || "user")
-      : "user";
-    const normalizedStatus = ["active", "inactive"].includes(String(status || "inactive"))
-      ? String(status || "inactive")
-      : "inactive";
-    const normalizedCanBook = ["yes", "no"].includes(String(can_book || "no"))
-      ? String(can_book || "no")
-      : "no";
-    const normalizedFeesStatus = ["paid", "defaulter"].includes(String(fees_status || "paid"))
-      ? String(fees_status || "paid")
-      : "paid";
+    const normalizedRole = normalizeEnumValue(role, USER_ROLES, "user");
+    const normalizedStatus = normalizeEnumValue(status, USER_STATUSES, "inactive");
+    const normalizedCanBook = normalizeEnumValue(can_book, USER_CAN_BOOK, "no");
+    const normalizedFeesStatus = normalizeEnumValue(fees_status, USER_FEES_STATUSES, "paid");
 
     if (!normalizedName) {
       return res.status(400).json({ message: "Name is required" });
@@ -72,6 +97,16 @@ exports.createUser = async (req, res) => {
 
     if (String(password).length < 6) {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    const roleError = ensureAdminCanManageRole({
+      actorRole: req.user.role,
+      targetRole: "user",
+      nextRole: normalizedRole,
+    });
+
+    if (roleError) {
+      return res.status(403).json({ message: roleError });
     }
 
     const [existing] = await pool.query(
@@ -135,6 +170,18 @@ exports.updateUser = async (req, res) => {
     const normalizedUsername = String(username || currentUser.username).trim().toLowerCase();
     const normalizedEmail = String(email || currentUser.email).trim().toLowerCase();
     const normalizedCmNo = cm_no === undefined ? currentUser.cm_no : String(cm_no || "").trim() || null;
+    const normalizedRole = role === undefined
+      ? currentUser.role
+      : normalizeEnumValue(role, USER_ROLES, currentUser.role);
+    const normalizedStatus = status === undefined
+      ? currentUser.status
+      : normalizeEnumValue(status, USER_STATUSES, currentUser.status);
+    const normalizedCanBook = can_book === undefined
+      ? currentUser.can_book
+      : normalizeEnumValue(can_book, USER_CAN_BOOK, currentUser.can_book);
+    const normalizedFeesStatus = fees_status === undefined
+      ? currentUser.fees_status
+      : normalizeEnumValue(fees_status, USER_FEES_STATUSES, currentUser.fees_status);
 
     const [duplicate] = await pool.query(
       "SELECT id FROM users WHERE (email = ? OR username = ?) AND id != ?",
@@ -143,6 +190,37 @@ exports.updateUser = async (req, res) => {
 
     if (duplicate.length > 0) {
       return res.status(400).json({ message: "User with this email or username already exists" });
+    }
+
+    const roleError = ensureAdminCanManageRole({
+      actorRole: req.user.role,
+      targetRole: currentUser.role,
+      nextRole: normalizedRole,
+    });
+
+    if (roleError) {
+      return res.status(403).json({ message: roleError });
+    }
+
+    if (Number(id) === Number(req.user.id)) {
+      if (normalizedRole !== currentUser.role) {
+        return res.status(400).json({ message: "You cannot change your own role" });
+      }
+
+      if (normalizedStatus !== currentUser.status) {
+        return res.status(400).json({ message: "You cannot change your own status" });
+      }
+    }
+
+    if (
+      currentUser.role === "superadmin" &&
+      (normalizedRole !== "superadmin" || normalizedStatus !== "active")
+    ) {
+      const superadminCount = await countSuperadmins();
+
+      if (superadminCount <= 1) {
+        return res.status(400).json({ message: "At least one active superadmin must remain" });
+      }
     }
 
     let nextPassword = currentUser.password;
@@ -160,10 +238,10 @@ exports.updateUser = async (req, res) => {
         normalizedEmail,
         normalizedCmNo,
         nextPassword,
-        role || currentUser.role,
-        status || currentUser.status,
-        can_book || currentUser.can_book,
-        fees_status || currentUser.fees_status,
+        normalizedRole,
+        normalizedStatus,
+        normalizedCanBook,
+        normalizedFeesStatus,
         id,
       ]
     );
@@ -194,6 +272,29 @@ exports.deleteUser = async (req, res) => {
 
     if (users.length === 0) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    if (Number(id) === Number(req.user.id)) {
+      return res.status(400).json({ message: "You cannot delete your own account" });
+    }
+
+    const targetUser = users[0];
+    const roleError = ensureAdminCanManageRole({
+      actorRole: req.user.role,
+      targetRole: targetUser.role,
+      nextRole: targetUser.role,
+    });
+
+    if (roleError) {
+      return res.status(403).json({ message: roleError });
+    }
+
+    if (targetUser.role === "superadmin") {
+      const superadminCount = await countSuperadmins();
+
+      if (superadminCount <= 1) {
+        return res.status(400).json({ message: "You cannot delete the last superadmin" });
+      }
     }
 
     await pool.query("DELETE FROM users WHERE id = ?", [id]);
