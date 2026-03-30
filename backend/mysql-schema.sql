@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
   status ENUM('active', 'inactive') NOT NULL DEFAULT 'inactive',
   can_book ENUM('yes', 'no') NOT NULL DEFAULT 'no',
   fees_status ENUM('paid', 'defaulter') NOT NULL DEFAULT 'paid',
+  token_version INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),

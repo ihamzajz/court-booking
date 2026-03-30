@@ -18,7 +18,7 @@ import { AUTH_API } from "../../src/config/api";
 import AppScreen from "../../components/AppScreen";
 import useLiveRefresh from "../../src/hooks/useLiveRefresh";
 import useRealtimeSubscription from "../../src/hooks/useRealtimeSubscription";
-import { clearStoredUser, getStoredUser, setStoredUser } from "../../src/utils/auth";
+import { clearStoredUser, validateStoredSession } from "../../src/utils/auth";
 
 const palette = {
   bg: "#F4F8FF",
@@ -45,7 +45,7 @@ export default function Profile() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const loadUser = useCallback(async () => {
-    const storedUser = await getStoredUser();
+    const storedUser = await validateStoredSession();
 
     if (!storedUser?.token) {
       setUser(null);
@@ -53,32 +53,7 @@ export default function Profile() {
       return;
     }
 
-    try {
-      const res = await fetch(`${AUTH_API}/me`, {
-        headers: {
-          Authorization: `Bearer ${storedUser.token}`,
-        },
-      });
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok || !data) {
-        if (res.status === 401 || res.status === 403) {
-          await clearStoredUser();
-          router.replace("/login");
-          return;
-        }
-
-        setUser(storedUser);
-        return;
-      }
-
-      const nextUser = { ...storedUser, ...data, token: storedUser.token };
-      await setStoredUser(nextUser);
-      setUser(nextUser);
-    } catch {
-      setUser(storedUser);
-    }
+    setUser(storedUser);
   }, []);
 
   useLiveRefresh(loadUser, { intervalMs: 90000 });
@@ -138,11 +113,9 @@ export default function Profile() {
         return;
       }
 
-      Alert.alert("Success", "Password changed successfully.");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmNewPassword("");
-      setShowChangePass(false);
+      await clearStoredUser();
+      Alert.alert("Success", data.message || "Password changed successfully.");
+      router.replace("/login");
     } catch {
       Alert.alert("Network Error", "Could not reach server. Make sure backend is running.");
     } finally {

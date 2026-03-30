@@ -6,7 +6,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import AppScreen from "../../components/AppScreen";
-import { getStoredUser } from "../../src/utils/auth";
+import { validateStoredSession } from "../../src/utils/auth";
 
 const palette = {
   bg: "#F4F8FF",
@@ -79,7 +79,7 @@ export default function AdminPanel() {
 
   useEffect(() => {
     const checkAccess = async () => {
-      const parsedUser = await getStoredUser();
+      const parsedUser = await validateStoredSession();
       if (!parsedUser?.token) {
         router.replace("/login");
         return;

@@ -2,23 +2,13 @@ const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
-const { emitRealtime } = require("../socket");
+const { disconnectUserSockets, emitRealtime } = require("../socket");
+const { sanitizeUser, signAccessToken } = require("../utils/authSession");
 const { isDuplicateEntryError } = require("../utils/dbErrors");
 const { isMailConfigured, sendPasswordResetOtpEmail } = require("../services/emailService");
 
 const RESET_OTP_EXPIRY_MINUTES = 10;
 const RESET_OTP_MAX_ATTEMPTS = 5;
-
-const generateToken = (user) => {
-  return jwt.sign(
-    {
-      id: user.id,
-      role: user.role,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-};
 
 const generatePasswordResetToken = ({ otpId, userId, email }) => {
   return jwt.sign(
@@ -32,18 +22,6 @@ const generatePasswordResetToken = ({ otpId, userId, email }) => {
     { expiresIn: "15m" }
   );
 };
-
-const sanitizeUser = (user) => ({
-  id: user.id,
-  name: user.name,
-  username: user.username,
-  email: user.email,
-  cm_no: user.cm_no,
-  role: user.role,
-  status: user.status,
-  can_book: user.can_book,
-  fees_status: user.fees_status,
-});
 
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
 
@@ -165,7 +143,7 @@ exports.loginUser = async (req, res) => {
 
     res.json({
       ...sanitizeUser(user),
-      token: generateToken(user),
+      token: signAccessToken(user),
     });
   } catch (error) {
     console.error(error);
@@ -345,7 +323,10 @@ exports.resetPasswordWithOtp = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    await pool.query("UPDATE users SET password = ? WHERE id = ?", [hashedPassword, record.user_id]);
+    await pool.query(
+      "UPDATE users SET password = ?, token_version = token_version + 1 WHERE id = ?",
+      [hashedPassword, record.user_id]
+    );
     await pool.query(
       `UPDATE password_reset_otps
        SET used_at = NOW()
@@ -354,6 +335,7 @@ exports.resetPasswordWithOtp = async (req, res) => {
     );
 
     emitRealtime("users:updated", { action: "password-reset", id: record.user_id });
+    await disconnectUserSockets(record.user_id);
     res.json({ message: "Password reset successfully. You can now log in." });
   } catch (error) {
     console.error(error);
@@ -390,10 +372,14 @@ exports.changePassword = async (req, res) => {
 
     const hashed = await bcrypt.hash(newPassword, 10);
 
-    await pool.query("UPDATE users SET password = ? WHERE id = ?", [hashed, req.user.id]);
+    await pool.query(
+      "UPDATE users SET password = ?, token_version = token_version + 1 WHERE id = ?",
+      [hashed, req.user.id]
+    );
 
     emitRealtime("users:updated", { action: "password-changed", id: req.user.id });
-    res.json({ message: "Password updated successfully" });
+    await disconnectUserSockets(req.user.id);
+    res.json({ message: "Password updated successfully. Please sign in again." });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });

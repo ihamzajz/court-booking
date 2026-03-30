@@ -227,6 +227,10 @@ exports.adminUpdateEventBookingStatus = async (req, res) => {
       [bookingId]
     );
 
+    if (!booking.length) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
     emitRealtime("event-bookings:updated", { action: "status-updated", id: Number(bookingId) });
     res.json(booking[0]);
   } catch (err) {
@@ -258,6 +262,10 @@ exports.updateEventBookingPayment = async (req, res) => {
        WHERE eb.id = ?`,
       [bookingId]
     );
+
+    if (!booking.length) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
 
     emitRealtime("event-bookings:updated", { action: "payment-updated", id: Number(bookingId) });
     res.json(booking[0]);

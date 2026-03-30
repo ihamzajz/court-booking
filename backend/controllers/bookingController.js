@@ -275,9 +275,13 @@ exports.adminUpdateStatus = async (req, res) => {
        FROM bookings b
        JOIN users u ON b.user_id = u.id
        JOIN courts c ON b.court_id = c.id
-       WHERE b.id = ?`,
+      WHERE b.id = ?`,
       [bookingId]
     );
+
+    if (!booking.length) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
 
     emitRealtime("bookings:updated", { action: "status-updated", id: Number(bookingId) });
     res.json(booking[0]);
@@ -307,9 +311,13 @@ exports.updatePayment = async (req, res) => {
        FROM bookings b
        JOIN users u ON b.user_id = u.id
        JOIN courts c ON b.court_id = c.id
-       WHERE b.id = ?`,
+      WHERE b.id = ?`,
       [bookingId]
     );
+
+    if (!booking.length) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
 
     emitRealtime("bookings:updated", { action: "payment-updated", id: Number(bookingId) });
     res.json(booking[0]);

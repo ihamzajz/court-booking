@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 import { router } from "expo-router";
 
-import { getStoredUser } from "../src/utils/auth";
+import { validateStoredSession } from "../src/utils/auth";
 
 export default function Index() {
   useEffect(() => {
     const init = async () => {
-      const user = await getStoredUser();
+      const user = await validateStoredSession();
 
       if (user?.token) {
         router.replace("/(tabs)/home"); // logged in

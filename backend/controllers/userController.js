@@ -1,6 +1,6 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
-const { emitRealtime } = require("../socket");
+const { disconnectUserSockets, emitRealtime } = require("../socket");
 const { isDuplicateEntryError } = require("../utils/dbErrors");
 
 const USER_ROLES = ["user", "admin", "superadmin"];
@@ -225,12 +225,17 @@ exports.updateUser = async (req, res) => {
 
     let nextPassword = currentUser.password;
     if (password && String(password).trim()) {
+      if (String(password).trim().length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+
       nextPassword = await bcrypt.hash(String(password).trim(), 10);
     }
 
     await pool.query(
       `UPDATE users
-       SET name = ?, username = ?, email = ?, cm_no = ?, password = ?, role = ?, status = ?, can_book = ?, fees_status = ?
+       SET name = ?, username = ?, email = ?, cm_no = ?, password = ?, role = ?, status = ?, can_book = ?, fees_status = ?,
+           token_version = CASE WHEN ? THEN token_version + 1 ELSE token_version END
        WHERE id = ?`,
       [
         String(name || currentUser.name).trim(),
@@ -242,6 +247,7 @@ exports.updateUser = async (req, res) => {
         normalizedStatus,
         normalizedCanBook,
         normalizedFeesStatus,
+        Boolean(password && String(password).trim()),
         id,
       ]
     );
@@ -254,6 +260,12 @@ exports.updateUser = async (req, res) => {
     );
 
     emitRealtime("users:updated", { action: "updated", id: Number(id) });
+    if (
+      Boolean(password && String(password).trim()) ||
+      normalizedStatus !== "active"
+    ) {
+      await disconnectUserSockets(id);
+    }
     res.json(updated[0]);
   } catch (error) {
     console.error(error);
@@ -299,6 +311,7 @@ exports.deleteUser = async (req, res) => {
 
     await pool.query("DELETE FROM users WHERE id = ?", [id]);
     emitRealtime("users:updated", { action: "deleted", id: Number(id) });
+    await disconnectUserSockets(id);
     res.json({ message: "User deleted" });
   } catch (error) {
     console.error(error);

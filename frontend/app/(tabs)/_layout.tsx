@@ -5,7 +5,7 @@ import { AppState, Platform, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as NavigationBar from "expo-navigation-bar";
 
-import { getStoredUser } from "../../src/utils/auth";
+import { validateStoredSession } from "../../src/utils/auth";
 
 const palette = {
   bg: "#F4F8FF",
@@ -37,7 +37,7 @@ export default function TabLayout() {
     let isMounted = true;
 
     const ensureSession = async () => {
-      const storedUser = await getStoredUser();
+      const storedUser = await validateStoredSession();
 
       if (!isMounted) return;
 

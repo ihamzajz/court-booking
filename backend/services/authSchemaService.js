@@ -1,6 +1,38 @@
 const pool = require("../config/db");
 
+const ensureUsersTokenVersionColumn = async () => {
+  const [tableRows] = await pool.query(
+    `SELECT COUNT(*) AS total
+     FROM information_schema.TABLES
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'users'`
+  );
+
+  if (Number(tableRows[0]?.total || 0) === 0) {
+    return;
+  }
+
+  const [rows] = await pool.query(
+    `SELECT COUNT(*) AS total
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'users'
+       AND COLUMN_NAME = 'token_version'`
+  );
+
+  if (Number(rows[0]?.total || 0) > 0) {
+    return;
+  }
+
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN token_version INT NOT NULL DEFAULT 0 AFTER fees_status
+  `);
+};
+
 const ensureAuthTables = async () => {
+  await ensureUsersTokenVersionColumn();
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS slides (
       id INT NOT NULL AUTO_INCREMENT,

@@ -1,6 +1,4 @@
-const jwt = require("jsonwebtoken");
-
-const pool = require("../config/db");
+const { resolveActiveUserFromToken } = require("../utils/authSession");
 
 exports.protect = async (req, res, next) => {
   let token;
@@ -14,32 +12,11 @@ exports.protect = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.id || decoded._id;
-
-    const [rows] = await pool.query(
-      `SELECT id, name, username, email, cm_no, role, status, can_book, fees_status
-       FROM users
-       WHERE id = ?
-       LIMIT 1`,
-      [userId]
-    );
-
-    if (!rows.length) {
-      return res.status(401).json({ message: "User not found" });
-    }
-
-    const user = rows[0];
-
-    if (user.status !== "active") {
-      return res.status(403).json({ message: "Account inactive. Contact admin" });
-    }
-
+    const { user } = await resolveActiveUserFromToken(token);
     req.user = user;
-
     next();
   } catch (error) {
-    return res.status(401).json({ message: "Token invalid" });
+    return res.status(error.statusCode || 401).json({ message: error.message || "Token invalid" });
   }
 };
 
