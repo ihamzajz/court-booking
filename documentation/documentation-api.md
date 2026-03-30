@@ -150,69 +150,13 @@ Body:
 }
 ```
 
-### Send Forgot-Password OTP
+### Forgot-Password and OTP Reset
 
-`POST /api/auth/forgot-password/send-otp`
+This flow has been removed from the active project.
 
-Use for:
+If it is needed again later, restore it from:
 
-- sending a 6-digit password reset OTP to user email
-
-Body:
-
-```json
-{
-  "email": "hamza@example.com"
-}
-```
-
-Notes:
-
-- response is generic for security
-- Gmail config must exist in backend `.env`
-
-### Verify Forgot-Password OTP
-
-`POST /api/auth/forgot-password/verify-otp`
-
-Use for:
-
-- verifying OTP before reset
-
-Body:
-
-```json
-{
-  "email": "hamza@example.com",
-  "otp": "123456"
-}
-```
-
-Returns:
-
-```json
-{
-  "message": "OTP verified successfully",
-  "resetToken": "JWT_RESET_TOKEN"
-}
-```
-
-### Reset Password
-
-`POST /api/auth/forgot-password/reset`
-
-Use for:
-
-- setting a new password after OTP verification
-
-Body:
-
-```json
-{
-  "resetToken": "JWT_RESET_TOKEN",
-  "newPassword": "newpass123"
-}
-```
+- `documentation/forgot-password-otp-archive.md`
 
 ## 4. User APIs
 

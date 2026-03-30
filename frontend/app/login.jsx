@@ -109,15 +109,7 @@ export default function Login() {
               autoCapitalize="none"
             />
 
-            <View style={styles.fieldLabelRow}>
-              <Text style={styles.fieldLabel}>Password</Text>
-              <Pressable
-                onPress={() => router.push("/forgot-password")}
-                style={({ pressed }) => [styles.inlineAction, pressed && { opacity: 0.75 }]}
-              >
-                <Text style={styles.inlineActionText}>Forgot password?</Text>
-              </Pressable>
-            </View>
+            <Text style={styles.fieldLabel}>Password</Text>
             <Field
               icon="lock-outline"
               placeholder="Enter password"
@@ -277,11 +269,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: 6,
   },
-  fieldLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
   fieldIcon: {
     width: 30,
     alignItems: "center",
@@ -296,16 +283,6 @@ const styles = StyleSheet.create({
   rightIcon: {
     width: 30,
     alignItems: "center",
-  },
-  inlineAction: {
-    marginBottom: 6,
-    paddingVertical: 2,
-    paddingLeft: 8,
-  },
-  inlineActionText: {
-    color: "#1D4ED8",
-    fontFamily: "Poppins_700Bold",
-    fontSize: 11.5,
   },
   primaryBtn: {
     marginTop: 6,

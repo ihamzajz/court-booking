@@ -6,12 +6,13 @@ import {
   StyleSheet,
   Pressable,
   ActivityIndicator,
+  Linking,
 } from "react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 
-import { AUTH_API } from "../src/config/api";
+import { AUTH_API, BASE_URL } from "../src/config/api";
 import AppScreen from "../components/AppScreen";
 
 export default function Register() {
@@ -213,6 +214,12 @@ export default function Register() {
           </View>
 
           <Text style={styles.footerHint}>After registering, wait for admin approval to activate your account.</Text>
+          <Pressable
+            onPress={() => Linking.openURL(`${BASE_URL}/privacy-policy`)}
+            style={({ pressed }) => [styles.policyLinkWrap, pressed && { opacity: 0.75 }]}
+          >
+            <Text style={styles.policyLinkText}>View Privacy Policy</Text>
+          </Pressable>
         </View>
       </View>
     </AppScreen>
@@ -408,5 +415,14 @@ const styles = StyleSheet.create({
     color: "#64748B",
     fontFamily: "Poppins_500Medium",
     fontSize: 12,
+  },
+  policyLinkWrap: {
+    marginTop: 10,
+    alignItems: "center",
+  },
+  policyLinkText: {
+    color: "#1D4ED8",
+    fontFamily: "Poppins_700Bold",
+    fontSize: 12.5,
   },
 });

@@ -81,10 +81,9 @@ DB_USER=root
 DB_PASSWORD=
 DB_NAME=court_booking
 JWT_SECRET=your-strong-secret
-MAIL_FROM_NAME=BookFlow
-MAIL_FROM_EMAIL=yourgmail@gmail.com
-MAIL_USER=yourgmail@gmail.com
-MAIL_APP_PASSWORD=your-google-app-password
+SUPPORT_EMAIL=support@example.com
+APP_NAME=BookFlow
+PRIVACY_CONTACT_NAME=BookFlow Support
 ```
 
 For production example:
@@ -92,10 +91,9 @@ For production example:
 ```env
 CORS_ORIGIN=https://abc.com
 JWT_SECRET=use-a-long-random-secret
-MAIL_FROM_NAME=BookFlow
-MAIL_FROM_EMAIL=yourgmail@gmail.com
-MAIL_USER=yourgmail@gmail.com
-MAIL_APP_PASSWORD=your-google-app-password
+SUPPORT_EMAIL=support@example.com
+APP_NAME=BookFlow
+PRIVACY_CONTACT_NAME=BookFlow Support
 ```
 
 ## 5. Login
@@ -148,25 +146,13 @@ Validation highlights:
 Forgot-password flow is now fully set up:
 
 1. user enters email
-2. backend sends 6-digit OTP by email
-3. user verifies OTP
-4. backend returns reset session token
-5. user sets new password
+This forgot-password and OTP recovery flow has been removed from the active project.
 
 Main files:
 
-- `frontend/app/forgot-password.jsx`
-- `backend/controllers/authController.js`
-- `backend/services/emailService.js`
-- `backend/routes/authRoutes.js`
+- `documentation/forgot-password-otp-archive.md`
 
-Security highlights:
-
-- OTP is stored hashed, not plain
-- OTP expires automatically
-- OTP has attempt limits
-- reset token is short-lived
-- Gmail app-password setup is ready in backend `.env`
+If you want it back later, restore it from the archive document.
 
 ## 8. Profile and Change Password
 
@@ -425,12 +411,12 @@ Important tables:
 - `faqs`
 - `news`
 - `slides`
-- `password_reset_otps`
+- `account_deletion_requests`
 
 Important notes:
 
 - `players_json` is used for court booking players
-- `password_reset_otps` is auto-created on startup
+- `account_deletion_requests` is auto-created on startup
 - `slides` is also auto-created on startup
 - hardcoded default admin seed was removed
 
