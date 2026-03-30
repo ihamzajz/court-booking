@@ -3,6 +3,9 @@
     "name": "BookFlow",
     "slug": "bookflow",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "bookflow",
@@ -10,11 +13,18 @@
     "newArchEnabled": true,
 
     "ios": {
-      "supportsTablet": true
-      
+      "supportsTablet": true,
+      "bundleIdentifier": "com.medicslabs.bookflow",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "BookFlow needs access to your photo library so admins can upload court, event, slide, and news images.",
+        "NSPhotoLibraryAddUsageDescription": "BookFlow may save selected images as part of admin media management."
+      }
     },
 
     "android": {
+      "package": "com.medicslabs.bookflow",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/icon.png",
@@ -42,6 +52,12 @@
           "dark": {
             "backgroundColor": "#F7FBFF"
           }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "BookFlow needs access to your photo library so admins can upload court, event, slide, and news images."
         }
       ],
       "@react-native-community/datetimepicker"

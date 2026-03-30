@@ -7,6 +7,7 @@ const {
   verifyForgotPasswordOtp,
   resetPasswordWithOtp,
   changePassword,
+  deleteCurrentUser,
   getCurrentUser,
 } = require("../controllers/authController");
 const { protect } = require("../middleware/authMiddleware");
@@ -20,5 +21,6 @@ router.post("/forgot-password/verify-otp", verifyForgotPasswordOtp);
 router.post("/forgot-password/reset", resetPasswordWithOtp);
 router.get("/me", protect, getCurrentUser);
 router.put("/change-password", protect, changePassword);
+router.delete("/me", protect, deleteCurrentUser);
 
 module.exports = router;

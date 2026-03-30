@@ -386,6 +386,51 @@ exports.changePassword = async (req, res) => {
   }
 };
 
+exports.deleteCurrentUser = async (req, res) => {
+  const currentPassword = String(req.body?.currentPassword || "");
+
+  try {
+    if (!currentPassword) {
+      return res.status(400).json({ message: "Current password is required" });
+    }
+
+    const [users] = await pool.query("SELECT id, password, role FROM users WHERE id = ?", [req.user.id]);
+
+    if (!users.length) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const user = users[0];
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password incorrect" });
+    }
+
+    if (user.role === "superadmin") {
+      const [superadminRows] = await pool.query(
+        "SELECT COUNT(*) AS total FROM users WHERE role = 'superadmin'"
+      );
+
+      if (Number(superadminRows[0]?.total || 0) <= 1) {
+        return res.status(400).json({ message: "You cannot delete the last superadmin account" });
+      }
+    }
+
+    await pool.query("DELETE FROM users WHERE id = ?", [req.user.id]);
+
+    emitRealtime("users:updated", { action: "self-deleted", id: req.user.id });
+    await disconnectUserSockets(req.user.id);
+
+    return res.json({
+      message: "Your account has been deleted successfully.",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
 exports.getCurrentUser = async (req, res) => {
   try {
     const [users] = await pool.query(

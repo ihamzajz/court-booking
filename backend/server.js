@@ -79,6 +79,25 @@ app.get("/", (req, res) => {
   res.send("Court Booking API running");
 });
 
+app.get("/health", async (_req, res) => {
+  try {
+    await pool.query("SELECT 1");
+    return res.json({
+      ok: true,
+      service: "court-booking-api",
+      environment: process.env.NODE_ENV || "development",
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Health check failed", error);
+    return res.status(503).json({
+      ok: false,
+      service: "court-booking-api",
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 app.use((err, _req, res, next) => {
   if (!err) return next();
 

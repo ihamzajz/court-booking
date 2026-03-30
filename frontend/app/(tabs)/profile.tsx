@@ -43,6 +43,9 @@ export default function Profile() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
 
   const loadUser = useCallback(async () => {
     const storedUser = await validateStoredSession();
@@ -121,6 +124,59 @@ export default function Profile() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      return Alert.alert("Error", "Enter your current password to delete your account.");
+    }
+
+    if (!user?.token) {
+      return Alert.alert("Error", "Session missing. Please login again.");
+    }
+
+    Alert.alert(
+      "Delete Account",
+      "This will permanently delete your account and associated data. This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setSaving(true);
+
+            try {
+              const res = await fetch(`${AUTH_API}/me`, {
+                method: "DELETE",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${user.token}`,
+                },
+                body: JSON.stringify({
+                  currentPassword: deletePassword,
+                }),
+              });
+
+              const data = await res.json().catch(() => ({}));
+
+              if (!res.ok) {
+                Alert.alert("Failed", data.message || "Could not delete account.");
+                return;
+              }
+
+              await clearStoredUser();
+              Alert.alert("Account Deleted", data.message || "Your account has been deleted.");
+              router.replace("/login");
+            } catch {
+              Alert.alert("Network Error", "Could not reach server. Make sure backend is running.");
+            } finally {
+              setSaving(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -216,6 +272,53 @@ export default function Profile() {
                 <>
                   <MaterialIcons name="lock-reset" size={18} color="#FFFFFF" />
                   <Text style={styles.primaryBtnText}>Update Password</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : null}
+      </View>
+
+      <View style={styles.deleteCard}>
+        <TouchableOpacity
+          style={styles.passwordHeader}
+          onPress={() => setShowDeleteAccount((prev) => !prev)}
+          activeOpacity={0.88}
+        >
+          <View>
+            <Text style={styles.deleteTitle}>Delete Account</Text>
+            <Text style={styles.deleteSubtitle}>Permanently remove your account and stored data.</Text>
+          </View>
+          <MaterialIcons
+            name={showDeleteAccount ? "keyboard-arrow-up" : "keyboard-arrow-down"}
+            size={26}
+            color={palette.red}
+          />
+        </TouchableOpacity>
+
+        {showDeleteAccount ? (
+          <View style={styles.passwordBody}>
+            <InputField
+              value={deletePassword}
+              onChangeText={setDeletePassword}
+              placeholder="Current password"
+              secureTextEntry={!showDeletePassword}
+              visible={showDeletePassword}
+              onToggleVisibility={() => setShowDeletePassword((value) => !value)}
+            />
+
+            <TouchableOpacity
+              style={[styles.deleteBtn, saving && { opacity: 0.7 }]}
+              onPress={handleDeleteAccount}
+              disabled={saving}
+              activeOpacity={0.88}
+            >
+              {saving ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <MaterialIcons name="delete-forever" size={18} color="#FFFFFF" />
+                  <Text style={styles.primaryBtnText}>Delete My Account</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -363,10 +466,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.line,
   },
+  deleteCard: {
+    marginTop: 12,
+    borderRadius: 22,
+    backgroundColor: "#FFF5F5",
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#F6CACA",
+  },
   sectionTitle: {
     color: palette.ink,
     fontSize: 17,
     fontFamily: "Poppins_700Bold",
+  },
+  deleteTitle: {
+    color: palette.red,
+    fontSize: 17,
+    fontFamily: "Poppins_700Bold",
+  },
+  deleteSubtitle: {
+    color: "#8A3B3B",
+    fontSize: 12,
+    marginTop: 2,
   },
   sectionSubtitle: {
     color: palette.muted,
@@ -443,6 +564,16 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 8,
     backgroundColor: "#2B2D42",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 4,
+  },
+  deleteBtn: {
+    height: 50,
+    borderRadius: 8,
+    backgroundColor: "#B42318",
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
